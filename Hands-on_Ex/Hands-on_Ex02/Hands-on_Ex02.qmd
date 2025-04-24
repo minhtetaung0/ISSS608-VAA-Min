@@ -1,0 +1,142 @@
+---
+title: "Hands-on Exercise 2"
+author: "Min Htet Aung"
+---
+
+# Getting Started 
+
+
+```{r}
+pacman::p_load(ggrepel, patchwork, ggthemes, hrbrthemes, tidyverse)
+```
+
+
+## Importing data
+
+```{r}
+exam_data <- read.csv("Exam_data.csv")
+```
+
+
+# Beyond ggplot2 Annotation: ggrepel
+
+## Working without ggrepel
+
+```{r}
+ggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label(aes(label = ID), hjust = .5, vjust = -.5) + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle("English Scores Vs Maths Scores for Primary 3")
+```
+
+
+## Working with ggrepel
+
+```{r}
+ggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label_repel(aes(label = ID), fontface = "bold") + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle("English Scores Vs Maths Scores for Primary 3")
+```
+
+
+# Beyond ggplot2 Themes
+
+ggplot2 have built-in themes - 
+- **theme_gray()**
+- **theme_bw()** 
+- **theme_classic()**
+- **theme_dark()**
+- **theme_light()**
+- **theme_linedraw()**
+- **theme_minimal()**
+- **theme_void()**
+
+## Using ggplot2 themes
+
+```{r}
+ggplot(data=exam_data, aes(x=MATHS)) + geom_histogram(bins = 20, boundary = 100, color = "grey25", fill = "grey90") + theme_linedraw() + ggtitle("Distribution of Maths scores")
+```
+
+
+## Working with ggtheme package
+
+```{r}
+ggplot(data=exam_data,
+       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = "grey25", fill= "grey90")+ ggtitle("Distribution of English Scores") + theme_solarized()
+```
+
+
+## Working with hrbthemes package
+
+```{r}
+ggplot(data=exam_data,
+       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = "grey25", fill= "grey90")+ ggtitle("Distribution of English Scores") + theme_ipsum_inter()
+```
+
+
+```{r}
+ggplot(data=exam_data,
+       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = "grey25", fill= "grey90")+ ggtitle("Distribution of English Scores") + theme_ipsum_inter(axis_title_size = 18, base_size = 15, grid = "Y")
+```
+
+
+# Beyond Single Graph 
+
+```{r}
+p1 <- ggplot(data=exam_data, aes(x=MATHS)) + geom_histogram(bins = 20, boundary = 100, color = "grey25", fill = "grey90") + coord_cartesian(xlim=c(0,100)) + ggtitle("Distribution of Maths Score")
+p1
+```
+
+
+```{r}
+p2 <- ggplot(data=exam_data, aes(x = ENGLISH)) +
+  geom_histogram(bins=20, boundary = 100, color="grey25", fill="grey90") +
+  coord_cartesian(xlim=c(0,100)) +
+  ggtitle("Distribution of English scores")
+p2
+```
+
+
+```{r}
+p3 <- ggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) +  coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle("English Scores Vs Maths Scores for Primary 3")
+p3
+```
+
+
+## Creating Composite Graphics: pathwork methods
+
+- Tow-Column layout can use **Plus Sign +**
+- **Parenthesis ()** are used to create subplot group
+- Two-Row layout can use **Devision Sign /**
+
+
+### Combining two ggplot2 graphs
+
+```{r}
+p1 + p2
+```
+
+
+### Combining three ggplot2 graphs
+
+**"|"** is to place the plots beside each other
+```{r}
+(p1 / p2) | p3
+```
+
+
+### Creating a composite figure with tag
+
+```{r}
+((p1 / p2) | p3) + plot_annotation(tag_levels =  'I')
+```
+
+
+### Creating figure with insert
+
+```{r}
+p3 + inset_element(p2, left = 0.02, bottom = 0.7, right = 0.5, top = 1)
+```
+
+
+### Creating a composite figure by using patchwork and ggtheme
+
+```{r}
+patchwork <- (p1 / p2) | p3 
+patchwork & theme_economist()
+```
