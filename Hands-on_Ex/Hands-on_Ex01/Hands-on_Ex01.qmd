@@ -1,6 +1,16 @@
 ---
 title: "Hands-on Exercise 1"
 author: "Min Htet Aung"
+description: "This is the Hands-on Exercise 1" 
+date: "April 20, 2024"
+date-modified: "last-modified"
+format: html
+editor: visual
+execute: 
+  eval: true
+  echo: true
+  warning: false
+  freeze: true
 ---
 
 # Getting Started
