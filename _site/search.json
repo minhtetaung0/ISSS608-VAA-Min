@@ -7,6 +7,69 @@
     "text": "Welcome to ISSS608 Visual Analytics and Application. In this website, you will find my coursework prepared for this course."
   },
   {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
+    "title": "Hands-on Exercise 2",
+    "section": "",
+    "text": "pacman::p_load(ggrepel, patchwork, ggthemes, hrbrthemes, tidyverse)\n\n\n\n\nexam_data &lt;- read.csv(\"Exam_data.csv\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
+    "title": "Hands-on Exercise 2",
+    "section": "",
+    "text": "exam_data &lt;- read.csv(\"Exam_data.csv\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
+    "title": "Hands-on Exercise 2",
+    "section": "Working without ggrepel",
+    "text": "Working without ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label(aes(label = ID), hjust = .5, vjust = -.5) + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
+    "title": "Hands-on Exercise 2",
+    "section": "Working with ggrepel",
+    "text": "Working with ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label_repel(aes(label = ID), fontface = \"bold\") + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
+    "title": "Hands-on Exercise 2",
+    "section": "Using ggplot2 themes",
+    "text": "Using ggplot2 themes\n\nggplot(data=exam_data, aes(x=MATHS)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill = \"grey90\") + theme_linedraw() + ggtitle(\"Distribution of Maths scores\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
+    "title": "Hands-on Exercise 2",
+    "section": "Working with ggtheme package",
+    "text": "Working with ggtheme package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_solarized()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
+    "title": "Hands-on Exercise 2",
+    "section": "Working with hrbthemes package",
+    "text": "Working with hrbthemes package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter()\n\n\n\n\n\n\n\n\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter(axis_title_size = 18, base_size = 15, grid = \"Y\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
+    "title": "Hands-on Exercise 2",
+    "section": "Creating Composite Graphics: pathwork methods",
+    "text": "Creating Composite Graphics: pathwork methods\n\nTow-Column layout can use Plus Sign +\nParenthesis () are used to create subplot group\nTwo-Row layout can use Devision Sign /\n\n\nCombining two ggplot2 graphs\n\np1 + p2\n\n\n\n\n\n\n\n\n\n\nCombining three ggplot2 graphs\n“|” is to place the plots beside each other\n\n(p1 / p2) | p3\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure with tag\n\n((p1 / p2) | p3) + plot_annotation(tag_levels =  'I')\n\n\n\n\n\n\n\n\n\n\nCreating figure with insert\n\np3 + inset_element(p2, left = 0.02, bottom = 0.7, right = 0.5, top = 1)\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure by using patchwork and ggtheme\n\npatchwork &lt;- (p1 / p2) | p3 \npatchwork & theme_economist()"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site\n\n1 + 1\n\n[1] 2"
+  },
+  {
     "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html",
     "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html",
     "title": "Hands-on Exercise 1",
@@ -168,73 +231,101 @@
     "text": "Working with theme\nUsing theme_classic()\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_classic()\n\n\n\n\n\n\n\n\nUsing theme_minimal()\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_minimal()"
   },
   {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html",
+    "title": "Hands-on Exercise 3.1",
     "section": "",
-    "text": "About this site\n\n1 + 1\n\n[1] 2"
+    "text": "ggiraph for making ‘ggplot’ graphics interactive.\nplotly R library for plotting interactive statistical graphs.\nDT provides R interface to the JavaScript library. DataTables that create interactive table on html page.\npatchwork for combining multiple ggplot2 graphs into one figure."
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
-    "title": "Hands-on Exercise 2",
-    "section": "",
-    "text": "pacman::p_load(ggrepel, patchwork, ggthemes, hrbrthemes, tidyverse)\n\n\n\n\nexam_data &lt;- read.csv(\"Exam_data.csv\")"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#tooltip-effect-with-tooltip-aesthetics",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#tooltip-effect-with-tooltip-aesthetics",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Tooltip effect with tooltip aesthetics",
+    "text": "Tooltip effect with tooltip aesthetics\n\np &lt;- ggplot(data = exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive(aes(tooltip = ID), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 6,\n  height_svg = 6*0.618\n)\n\n\n\n\n\n\np &lt;- ggplot(data = exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive(aes(tooltip = ID, data_id = ID), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 6,\n  height_svg = 6*0.618\n)"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#installing-and-loading-the-required-libraries",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#installing-and-loading-the-required-libraries",
-    "title": "Hands-on Exercise 2",
-    "section": "",
-    "text": "pacman::p_load(ggrepel, patchwork, ggthemes, hrbrthemes, tidyverse)"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-multiple-information-on-tooltip",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-multiple-information-on-tooltip",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Displaying Multiple Information on tooltip",
+    "text": "Displaying Multiple Information on tooltip\n\nexam_data$tooltip &lt;- paste0(     \n  \"Name = \", exam_data$ID,   \"\\n Class = \", exam_data$CLASS, \"\\n Race = \", exam_data$RACE) \n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(tooltip = exam_data$tooltip), \n    stackgroups = TRUE,\n    binwidth = 1,\n    method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 8,\n  height_svg = 8*0.618\n)"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
-    "title": "Hands-on Exercise 2",
-    "section": "",
-    "text": "exam_data &lt;- read.csv(\"Exam_data.csv\")"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#customising-tooltip-style",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#customising-tooltip-style",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Customising Tooltip style",
+    "text": "Customising Tooltip style\n\ntooltip_css &lt;- \"background-color:lightblue; #&lt;&lt;\nfont-style:bold; color:black;\" #&lt;&lt;\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(tooltip = ID), stackgroups = TRUE,  binwidth = 1, method = \"histodot\") +               scale_y_continuous(NULL, breaks = NULL)\ngirafe(      \n  ggobj = p,   \n  width_svg = 6,  \n  height_svg = 6*0.618,\n  options = list(    #&lt;&lt;\n    opts_tooltip(    #&lt;&lt;\n      css = tooltip_css)) #&lt;&lt;\n)"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
-    "title": "Hands-on Exercise 2",
-    "section": "Working without ggrepel",
-    "text": "Working without ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label(aes(label = ID), hjust = .5, vjust = -.5) + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-statistics-on-tooltip",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-statistics-on-tooltip",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Displaying statistics on tooltip",
+    "text": "Displaying statistics on tooltip\n\ntooltip &lt;- function(y, ymax, accuracy = .01) {\n  mean &lt;- scales::number(y, accuracy = accuracy)\n  sem &lt;- scales::number(ymax - y, accuracy = accuracy)\n  paste(\"Mean maths scores:\", mean, \"+/-\", sem)\n}\n\ngg_point &lt;- ggplot(data=exam_data, aes(x = RACE)) +\n  stat_summary(aes(y = MATHS, tooltip = after_stat( tooltip(y, ymax))),  \n    fun.data = \"mean_se\", \n    geom = GeomInteractiveCol, fill = \"light green\") +\n  stat_summary(aes(y = MATHS), fun.data = mean_se, geom = \"errorbar\", width = 0.2, size = 0.2)\n\ngirafe(ggobj = gg_point,\n       width_svg = 8,\n       height_svg = 8*0.618)"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
-    "title": "Hands-on Exercise 2",
-    "section": "Working with ggrepel",
-    "text": "Working with ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label_repel(aes(label = ID), fontface = \"bold\") + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#hover-effect-with-data_id-aesthetic",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#hover-effect-with-data_id-aesthetic",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Hover effect with data_id aesthetic",
+    "text": "Hover effect with data_id aesthetic\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618)\n\n\n\n\n\n\nStyling hover effect\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618,\n  options = list(\n    opts_hover(css = \"fill: red;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
-    "title": "Hands-on Exercise 2",
-    "section": "Using ggplot2 themes",
-    "text": "Using ggplot2 themes\n\nggplot(data=exam_data, aes(x=MATHS)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill = \"grey90\") + theme_linedraw() + ggtitle(\"Distribution of Maths scores\")"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#combining-tooltip-and-hover-effect",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#combining-tooltip-and-hover-effect",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Combining tooltip and hover effect",
+    "text": "Combining tooltip and hover effect\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS, fill = RACE)) +\n  geom_dotplot_interactive( aes(tooltip = RACE, data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618,\n  options = list(\n    opts_hover(css = \"stroke: black;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
-    "title": "Hands-on Exercise 2",
-    "section": "Working with ggtheme package",
-    "text": "Working with ggtheme package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_solarized()"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#click-effect-with-onclick",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#click-effect-with-onclick",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Click effect with onclick",
+    "text": "Click effect with onclick\n\nexam_data$onclick &lt;- sprintf(\"window.open(\\\"%s%s\\\")\", \n                             \"https://www.moe.gov.sg/schoolfinder?journey=Primary%20school\", \n   as.character(exam_data$ID))\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(onclick = onclick), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618)"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
-    "title": "Hands-on Exercise 2",
-    "section": "Working with hrbthemes package",
-    "text": "Working with hrbthemes package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter()\n\n\n\n\n\n\n\n\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter(axis_title_size = 18, base_size = 15, grid = \"Y\")"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggiraph",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggiraph",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Coordinated Multiple Views with ggiraph",
+    "text": "Coordinated Multiple Views with ggiraph\n\np1 &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\n\np2 &lt;- ggplot(data=exam_data, aes(x = ENGLISH)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\n\n\ngirafe(                   \n  code = print(p1 + p2),\n  width_svg = 6,        \n  height_svg = 3,\n  options = list(\n    opts_hover(css = \"fill: red;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
-    "title": "Hands-on Exercise 2",
-    "section": "Creating Composite Graphics: pathwork methods",
-    "text": "Creating Composite Graphics: pathwork methods\n\nTow-Column layout can use Plus Sign +\nParenthesis () are used to create subplot group\nTwo-Row layout can use Devision Sign /\n\n\nCombining two ggplot2 graphs\n\np1 + p2\n\n\n\n\n\n\n\n\n\n\nCombining three ggplot2 graphs\n“|” is to place the plots beside each other\n\n(p1 / p2) | p3\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure with tag\n\n((p1 / p2) | p3) + plot_annotation(tag_levels =  'I')\n\n\n\n\n\n\n\n\n\n\nCreating figure with insert\n\np3 + inset_element(p2, left = 0.02, bottom = 0.7, right = 0.5, top = 1)\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure by using patchwork and ggtheme\n\npatchwork &lt;- (p1 / p2) | p3 \npatchwork & theme_economist()"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-plot_ly",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-plot_ly",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Using plot_ly()",
+    "text": "Using plot_ly()\n\nplot_ly(data = exam_data, \n             x = ~MATHS, \n             y = ~ENGLISH,\n            color = ~RACE)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-ggplotly",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-ggplotly",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Using ggplotly()",
+    "text": "Using ggplotly()\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS, y = ENGLISH)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100),ylim=c(0,100))\nggplotly(p)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggplotly",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggplotly",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Coordinated Multiple Views with ggplotly()",
+    "text": "Coordinated Multiple Views with ggplotly()\n\nd &lt;- highlight_key(exam_data)\np1 &lt;- ggplot(data=d, \n            aes(x = MATHS, y = ENGLISH)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\np2 &lt;- ggplot(data=d, \n            aes(x = MATHS, y = SCIENCE)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\nsubplot(ggplotly(p1),\n        ggplotly(p2))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#dt-package",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#dt-package",
+    "title": "Hands-on Exercise 3.1",
+    "section": "DT package",
+    "text": "DT package\n\nDT::datatable(exam_data, class= \"compact\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#linked-brushing-crosstalk-method",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#linked-brushing-crosstalk-method",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Linked brushing: crosstalk method",
+    "text": "Linked brushing: crosstalk method\n\nd &lt;- highlight_key(exam_data) \np &lt;- ggplot(d, aes(ENGLISH, MATHS)) + \n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\ngg &lt;- highlight(ggplotly(p),\"plotly_selected\")  \n\ncrosstalk::bscols(gg, DT::datatable(d),widths = 5)"
   }
 ]
