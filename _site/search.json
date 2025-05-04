@@ -1,108 +1,143 @@
 [
   {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "ISSS608-VAA-Min",
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html",
+    "title": "Take-home_Ex01",
     "section": "",
-    "text": "Welcome to ISSS608 Visual Analytics and Application. In this website, you will find my coursework prepared for this course."
+    "text": "This Quarto document supports a data-driven article by a local online media company that aims to investigate Singapore’s demographic structure and distribution in 2024. The analysis uses official population statistics to highlight the top 28 planning areas (PAs) with the highest total resident population in a bar chart, followed by a diverging gender distribution define that clearly shows the male-to-female ratio in these locations. Furthermore, the report includes population pyramids for the top 24 most populated PAs, which illustrate age distribution patterns across sexes. These pyramids are especially useful for detecting places with aging populations, as evidenced by wider age bands at the upper age levels. In addition to supporting the media company’s upcoming article with clear, appealing visuals, the visualizations collectively offer a thorough overview of where people live, how the population is divided by gender, and which regions may experience demographic shifts related to aging. These are important insights that can guide public discourse and policymaking."
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html",
-    "title": "Hands-on Exercise 3.1",
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#loading-packages",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#loading-packages",
+    "title": "Take-home_Ex01",
+    "section": "2.1 Loading Packages",
+    "text": "2.1 Loading Packages\nWe load the following R packages using the pacman::p_load() function:\n\ntidyverse – Core collection of R packages designed for data science\ndplyr – For data manipulation and transformation.\npatchwork – To combine multiple ggplot2 plots into a single layout.\nscales – For formatting axes and labels (e.g., commas, percentages).\nforcats – For working with categorical/factor variables.\n\n\npacman::p_load(dplyr, patchwork, tidyverse, scales, forcasts)"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#importing-data",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#importing-data",
+    "title": "Take-home_Ex01",
+    "section": "2.2 Importing Data",
+    "text": "2.2 Importing Data\n\nsg_res &lt;- read.csv(\"data/respopagesex2024.csv\")\n\nThis is the description of the data:\n\n\n\n\n\n\n\n\nColumn Name\nDescription\nData Type\n\n\n\n\nPA\nPlanning Area (e.g., Tampines, Woodlands, etc.)\nCategorical\n\n\nAge\nAge group (e.g., “0”, “5”, …, “90+”, typically in 5-year bins)\nOrdinal (Factor or Integer)\n\n\nSex\nGender category: “Males” or “Females”\nCategorical\n\n\nPop\nPopulation count for the given PA, age group, and sex\nNumeric (Integer)"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#data-pre-processing",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#data-pre-processing",
+    "title": "Take-home_Ex01",
+    "section": "2.3 Data Pre Processing",
+    "text": "2.3 Data Pre Processing\nThis section involved cleaning and formatting the dataset by removing duplicates and missing values, converting the “90_and_Over” age group to numeric, and converting key variables like age, sex, and planning area into appropriate data types for analysis.\n\n2.3.1 Check and Drop Duplicates\n\nsg_res &lt;- sg_res %&gt;%\n  distinct()\n\n\n\n2.3.2 Check and Drop NAs\n\nsg_res &lt;- sg_res %&gt;%\n  mutate(\n    Age = ifelse(Age == \"90_and_Over\", \"90\", Age),\n    Age = as.numeric(Age),\n    PA = as.factor(PA),\n    SZ = as.factor(SZ),\n    Sex = as.factor(Sex),\n    Time = as.integer(Time)\n  ) %&gt;%\n  drop_na()"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#population-and-gender-distribution-in-top-28-planning-areas",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#population-and-gender-distribution-in-top-28-planning-areas",
+    "title": "Take-home_Ex01",
+    "section": "3.1 Population and Gender Distribution in Top 28 Planning Areas",
+    "text": "3.1 Population and Gender Distribution in Top 28 Planning Areas\nThis section visualizes the top 28 planning areas (PAs) in Singapore based on their total population. The first bar chart ranks these areas, revealing that Tampines, Bedok, and Sengkang are the most populous, each with over 265,000 residents. These areas are key residential hubs and likely experience high demand for infrastructure and services.\nThe second plot is a diverging bar chart that shows the gender distribution within each of these top 28 PAs. The proportions of males and females are nearly balanced across most regions, with slight variations. For example, Bukit Merah, Tanglin and Queenstown have a noticeably higher female percentage (around 53–54%), while areas like Choa Chu Kang and Woodlands show an exact or near-equal male-female split (50-50%).\nThese visualizations provide a clear demographic snapshot—highlighting not only which areas are most densely populated, but also offering insights into gender balance, which can influence local policies, healthcare planning, and community programs.\n\n3.1.1 Top 28 Planning Areas by Total Population\n\ntop28_pa_pop &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(TotalPop = sum(Pop), .groups = \"drop\") %&gt;%\n  arrange(desc(TotalPop)) %&gt;%\n  slice_head(n = 28)\n\ntotal_pop_by_pa &lt;- ggplot(top28_pa_pop, aes(x = TotalPop, y = fct_reorder(PA, TotalPop))) +\n  geom_col(fill = \"steelblue\") +\n  geom_text(aes(label = scales::comma(TotalPop)), hjust = -0.1, size = 3)+\n  labs(\n    title = \"Top 28 Planning Areas by Total Population\",\n    x = \"Total Population\",\n    y = \"Planning Area\"\n  ) +\n  theme_minimal()+\n  theme(axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        plot.title = element_text(size = 30))\n\n\n\n3.1.2 Gender Distribution in Top 28 Planning Areas\n\npop_sex_dist &lt;- sg_res %&gt;%\n  filter(PA %in% top28_pa_pop$PA) %&gt;%\n  group_by(PA, Sex) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\") %&gt;%\n  group_by(PA) %&gt;%\n  mutate(\n    Total = sum(Pop),\n    Percent = Pop / Total,\n    Pop_signed = ifelse(Sex == \"Males\", -Pop, Pop),\n    Percent_label = paste0(round(Percent * 100), \"%\")\n  ) %&gt;%\n  ungroup()\n\npop_sex_dist$PA &lt;- factor(pop_sex_dist$PA, levels = top28_pa_pop$PA)\n\n\nsex_of_pop_by_pa &lt;- ggplot(pop_sex_dist, aes(x = Pop_signed, y = PA, fill = Sex)) +\n  geom_col(width = 0.6) +\n  geom_text(aes(label = Percent_label),\n            position = position_stack(vjust = 0.5),\n            size = 3.2, color = \"white\") +\n  scale_x_continuous(\n    labels = abs,\n    expand = expansion(mult = c(0.1, 0.1))\n  ) +\n  labs(\n    title = \"Gender Distribution in Top 28 Planning Areas\",\n    x = \"Population Count\",\n    y = \"Planning Area\"\n  ) +\n  theme_minimal() +\n  theme(axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        plot.title = element_text(size = 30))\n  scale_fill_manual(values = c(\"Males\" = \"#1f77b4\", \"Females\" = \"#ff7f0e\"))\n\n&lt;ggproto object: Class ScaleDiscrete, Scale, gg&gt;\n    aesthetics: fill\n    axis_order: function\n    break_info: function\n    break_positions: function\n    breaks: waiver\n    call: call\n    clone: function\n    dimension: function\n    drop: TRUE\n    expand: waiver\n    get_breaks: function\n    get_breaks_minor: function\n    get_labels: function\n    get_limits: function\n    get_transformation: function\n    guide: legend\n    is_discrete: function\n    is_empty: function\n    labels: waiver\n    limits: function\n    make_sec_title: function\n    make_title: function\n    map: function\n    map_df: function\n    n.breaks.cache: NULL\n    na.translate: TRUE\n    na.value: grey50\n    name: waiver\n    palette: function\n    palette.cache: NULL\n    position: left\n    range: environment\n    rescale: function\n    reset: function\n    train: function\n    train_df: function\n    transform: function\n    transform_df: function\n    super:  &lt;ggproto object: Class ScaleDiscrete, Scale, gg&gt;\n\n\n\n\n3.1.3 Combining Two Plots\n\ncombine_plots &lt;- total_pop_by_pa / plot_spacer() / sex_of_pop_by_pa +\n  plot_layout(heights = c(1, 0.1, 1))\ncombine_plots"
+  },
+  {
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#age-pyramid-of-top-24-planning-areas",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#age-pyramid-of-top-24-planning-areas",
+    "title": "Take-home_Ex01",
+    "section": "3.2 Age Pyramid of Top 24 Planning Areas",
+    "text": "3.2 Age Pyramid of Top 24 Planning Areas\nThis section presents population pyramids for the top 24 planning areas (PAs) in Singapore, offering a detailed view of age and gender distribution within each region. Each pyramid plots the male population on the left and female population on the right across single-year age groups, allowing for the identification of demographic trends such as youth-dominant or aging populations.\nFrom the visualizations, areas like Woodlands, Tampines, Sengkang, and Punggol show relatively balanced and broad bases, indicating a younger population with strong representation in the working-age and child demographics. In contrast, areas like Bukit Timah, Queenstown, and Bukit Merah display narrower bases and wider upper sections, and giving a signal of an aging population with a higher proportion of elderly residents.\nThese insights are crucial for urban planning, healthcare provisioning, and policymaking, as they highlight the varying age structures and potential future needs of each planning area.\n\n# Filter out the top 24 PA that has the highest population \ntop_24_pas &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(Total = sum(Pop), .groups = \"drop\") %&gt;%\n  slice_max(order_by = Total, n = 24) %&gt;%\n  pull(PA)\n\npyramid_data_top24 &lt;- sg_res %&gt;%\n  filter(PA %in% top_24_pas) %&gt;%\n  group_by(PA, Age, Sex) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\") %&gt;%\n  mutate(Pop = ifelse(Sex == \"Males\", -Pop, Pop))\n\n\nggplot(pyramid_data_top24, aes(x = Age, y = Pop, fill = Sex)) +\n  geom_bar(stat = \"identity\", width = 0.8) +\n  coord_flip() +\n  scale_y_continuous(labels = abs) +\n  facet_wrap(~ PA, scales = \"free_y\", ncol = 6) +  # 6 columns for layout\n  labs(title = \"Population Pyramids of Top 24 Planning Areas\",\n       x = \"Age Group\", y = \"Population\") +\n  theme_minimal(base_size = 9) +\n  theme(axis.title.x = element_text(size = 25),\n        axis.title.y = element_text(size = 25),\n        plot.title = element_text(size = 35)) +\n  scale_fill_manual(values = c(\"Males\" = \"skyblue\", \"Females\" = \"salmon\"))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html",
+    "title": "Hands-on Exercise 3.2",
     "section": "",
-    "text": "ggiraph for making ‘ggplot’ graphics interactive.\nplotly R library for plotting interactive statistical graphs.\nDT provides R interface to the JavaScript library. DataTables that create interactive table on html page.\npatchwork for combining multiple ggplot2 graphs into one figure."
+    "text": "plotly is the R library for plotting interactive statistical graphs.\ngganimate is a ggplot extension for creating animated stastical graphs.\ngifski converts video frames to GIF animations using pngquant’s fancy features for efficient cross-frame palettes and temporal dithering. It produces animated GIFs that use thousands of colors per frame.\ngapminder is an excerpt of the data available at Gapminder.org. We just want to use its country_colors scheme."
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#tooltip-effect-with-tooltip-aesthetics",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#tooltip-effect-with-tooltip-aesthetics",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Tooltip effect with tooltip aesthetics",
-    "text": "Tooltip effect with tooltip aesthetics\n\np &lt;- ggplot(data = exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive(aes(tooltip = ID), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 6,\n  height_svg = 6*0.618\n)\n\n\n\n\n\n\np &lt;- ggplot(data = exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive(aes(tooltip = ID, data_id = ID), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 6,\n  height_svg = 6*0.618\n)"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-a-static-population-bubble-plot",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-a-static-population-bubble-plot",
+    "title": "Hands-on Exercise 3.2",
+    "section": "Building a static population bubble plot",
+    "text": "Building a static population bubble plot\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young')"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-multiple-information-on-tooltip",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-multiple-information-on-tooltip",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Displaying Multiple Information on tooltip",
-    "text": "Displaying Multiple Information on tooltip\n\nexam_data$tooltip &lt;- paste0(     \n  \"Name = \", exam_data$ID,   \"\\n Class = \", exam_data$CLASS, \"\\n Race = \", exam_data$RACE) \n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(tooltip = exam_data$tooltip), \n    stackgroups = TRUE,\n    binwidth = 1,\n    method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 8,\n  height_svg = 8*0.618\n)"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-the-animated-bubble-plot",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-the-animated-bubble-plot",
+    "title": "Hands-on Exercise 3.2",
+    "section": "Building the animated bubble plot",
+    "text": "Building the animated bubble plot\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young') +\n  transition_time(Year) +\n  ease_aes('linear')\n\n\n\n\n\n\n\n\n\nUsing other gganimate\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young') +\n  transition_time(Year) +\nview_follow(fixed_x = TRUE, fixed_y = TRUE) +\nshadow_trail(0.1) +\nenter_grow() +\nexit_shrink() +\nease_aes(\"sine-in-out\")"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#customising-tooltip-style",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#customising-tooltip-style",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Customising Tooltip style",
-    "text": "Customising Tooltip style\n\ntooltip_css &lt;- \"background-color:lightblue; #&lt;&lt;\nfont-style:bold; color:black;\" #&lt;&lt;\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(tooltip = ID), stackgroups = TRUE,  binwidth = 1, method = \"histodot\") +               scale_y_continuous(NULL, breaks = NULL)\ngirafe(      \n  ggobj = p,   \n  width_svg = 6,  \n  height_svg = 6*0.618,\n  options = list(    #&lt;&lt;\n    opts_tooltip(    #&lt;&lt;\n      css = tooltip_css)) #&lt;&lt;\n)"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-ggplotly-method",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-ggplotly-method",
+    "title": "Hands-on Exercise 3.2",
+    "section": "Building an animated bubble plot: ggplotly() method",
+    "text": "Building an animated bubble plot: ggplotly() method\n\ngg &lt;- ggplot(globalPop, \n       aes(x = Old,y = Young, size = Population, colour = Country)) +\n  geom_point(aes(size = Population, frame = Year), alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(x = '% Aged', y = '% Young')\n\nggplotly(gg)\n\n\n\n\n\n\ngg &lt;- ggplot(globalPop, \n       aes(x = Old,y = Young, size = Population, colour = Country)) +\n  geom_point(aes(size = Population, frame = Year), alpha = 0.7) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(x = '% Aged', y = '% Young') + \n  theme(legend.position = 'none')\n\nggplotly(gg)"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-statistics-on-tooltip",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-statistics-on-tooltip",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Displaying statistics on tooltip",
-    "text": "Displaying statistics on tooltip\n\ntooltip &lt;- function(y, ymax, accuracy = .01) {\n  mean &lt;- scales::number(y, accuracy = accuracy)\n  sem &lt;- scales::number(ymax - y, accuracy = accuracy)\n  paste(\"Mean maths scores:\", mean, \"+/-\", sem)\n}\n\ngg_point &lt;- ggplot(data=exam_data, aes(x = RACE)) +\n  stat_summary(aes(y = MATHS, tooltip = after_stat( tooltip(y, ymax))),  \n    fun.data = \"mean_se\", \n    geom = GeomInteractiveCol, fill = \"light green\") +\n  stat_summary(aes(y = MATHS), fun.data = mean_se, geom = \"errorbar\", width = 0.2, size = 0.2)\n\ngirafe(ggobj = gg_point,\n       width_svg = 8,\n       height_svg = 8*0.618)"
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-plot_ly-method",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-plot_ly-method",
+    "title": "Hands-on Exercise 3.2",
+    "section": "Building an animated bubble plot: plot_ly() method",
+    "text": "Building an animated bubble plot: plot_ly() method\n\nbp &lt;- globalPop %&gt;%\n  plot_ly(x = ~Old, y = ~Young, size = ~Population, color = ~Continent, sizes = c(2, 100), frame = ~Year, text = ~Country, hoverinfo = \"text\", type = 'scatter', mode = 'markers') %&gt;%\n  \n  layout(showlegend = FALSE)\nbp"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#hover-effect-with-data_id-aesthetic",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#hover-effect-with-data_id-aesthetic",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Hover effect with data_id aesthetic",
-    "text": "Hover effect with data_id aesthetic\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618)\n\n\n\n\n\n\nStyling hover effect\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618,\n  options = list(\n    opts_hover(css = \"fill: red;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
+    "title": "Hands-on Exercise 2",
+    "section": "",
+    "text": "pacman::p_load(ggrepel, patchwork, ggthemes, hrbrthemes, tidyverse)\n\n\n\n\nexam_data &lt;- read.csv(\"Exam_data.csv\")"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#combining-tooltip-and-hover-effect",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#combining-tooltip-and-hover-effect",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Combining tooltip and hover effect",
-    "text": "Combining tooltip and hover effect\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS, fill = RACE)) +\n  geom_dotplot_interactive( aes(tooltip = RACE, data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618,\n  options = list(\n    opts_hover(css = \"stroke: black;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
+    "title": "Hands-on Exercise 2",
+    "section": "",
+    "text": "exam_data &lt;- read.csv(\"Exam_data.csv\")"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#click-effect-with-onclick",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#click-effect-with-onclick",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Click effect with onclick",
-    "text": "Click effect with onclick\n\nexam_data$onclick &lt;- sprintf(\"window.open(\\\"%s%s\\\")\", \n                             \"https://www.moe.gov.sg/schoolfinder?journey=Primary%20school\", \n   as.character(exam_data$ID))\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(onclick = onclick), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618)"
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
+    "title": "Hands-on Exercise 2",
+    "section": "Working without ggrepel",
+    "text": "Working without ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label(aes(label = ID), hjust = .5, vjust = -.5) + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggiraph",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggiraph",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Coordinated Multiple Views with ggiraph",
-    "text": "Coordinated Multiple Views with ggiraph\n\np1 &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\n\np2 &lt;- ggplot(data=exam_data, aes(x = ENGLISH)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\n\n\ngirafe(                   \n  code = print(p1 + p2),\n  width_svg = 6,        \n  height_svg = 3,\n  options = list(\n    opts_hover(css = \"fill: red;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
+    "title": "Hands-on Exercise 2",
+    "section": "Working with ggrepel",
+    "text": "Working with ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label_repel(aes(label = ID), fontface = \"bold\") + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-plot_ly",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-plot_ly",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Using plot_ly()",
-    "text": "Using plot_ly()\n\nplot_ly(data = exam_data, \n             x = ~MATHS, \n             y = ~ENGLISH,\n            color = ~RACE)"
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
+    "title": "Hands-on Exercise 2",
+    "section": "Using ggplot2 themes",
+    "text": "Using ggplot2 themes\n\nggplot(data=exam_data, aes(x=MATHS)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill = \"grey90\") + theme_linedraw() + ggtitle(\"Distribution of Maths scores\")"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-ggplotly",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-ggplotly",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Using ggplotly()",
-    "text": "Using ggplotly()\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS, y = ENGLISH)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100),ylim=c(0,100))\nggplotly(p)"
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
+    "title": "Hands-on Exercise 2",
+    "section": "Working with ggtheme package",
+    "text": "Working with ggtheme package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_solarized()"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggplotly",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggplotly",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Coordinated Multiple Views with ggplotly()",
-    "text": "Coordinated Multiple Views with ggplotly()\n\nd &lt;- highlight_key(exam_data)\np1 &lt;- ggplot(data=d, \n            aes(x = MATHS, y = ENGLISH)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\np2 &lt;- ggplot(data=d, \n            aes(x = MATHS, y = SCIENCE)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\nsubplot(ggplotly(p1),\n        ggplotly(p2))"
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
+    "title": "Hands-on Exercise 2",
+    "section": "Working with hrbthemes package",
+    "text": "Working with hrbthemes package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter()\n\n\n\n\n\n\n\n\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter(axis_title_size = 18, base_size = 15, grid = \"Y\")"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#dt-package",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#dt-package",
-    "title": "Hands-on Exercise 3.1",
-    "section": "DT package",
-    "text": "DT package\n\nDT::datatable(exam_data, class= \"compact\")"
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
+    "title": "Hands-on Exercise 2",
+    "section": "Creating Composite Graphics: pathwork methods",
+    "text": "Creating Composite Graphics: pathwork methods\n\nTow-Column layout can use Plus Sign +\nParenthesis () are used to create subplot group\nTwo-Row layout can use Devision Sign /\n\n\nCombining two ggplot2 graphs\n\np1 + p2\n\n\n\n\n\n\n\n\n\n\nCombining three ggplot2 graphs\n“|” is to place the plots beside each other\n\n(p1 / p2) | p3\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure with tag\n\n((p1 / p2) | p3) + plot_annotation(tag_levels =  'I')\n\n\n\n\n\n\n\n\n\n\nCreating figure with insert\n\np3 + inset_element(p2, left = 0.02, bottom = 0.7, right = 0.5, top = 1)\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure by using patchwork and ggtheme\n\npatchwork &lt;- (p1 / p2) | p3 \npatchwork & theme_economist()"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#linked-brushing-crosstalk-method",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#linked-brushing-crosstalk-method",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Linked brushing: crosstalk method",
-    "text": "Linked brushing: crosstalk method\n\nd &lt;- highlight_key(exam_data) \np &lt;- ggplot(d, aes(ENGLISH, MATHS)) + \n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\ngg &lt;- highlight(ggplotly(p),\"plotly_selected\")  \n\ncrosstalk::bscols(gg, DT::datatable(d),widths = 5)"
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site\n\n1 + 1\n\n[1] 2"
   },
   {
     "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html",
@@ -266,101 +301,108 @@
     "text": "Working with theme\nUsing theme_classic()\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_classic()\n\n\n\n\n\n\n\n\nUsing theme_minimal()\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_minimal()"
   },
   {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html",
+    "title": "Hands-on Exercise 3.1",
     "section": "",
-    "text": "About this site\n\n1 + 1\n\n[1] 2"
+    "text": "ggiraph for making ‘ggplot’ graphics interactive.\nplotly R library for plotting interactive statistical graphs.\nDT provides R interface to the JavaScript library. DataTables that create interactive table on html page.\npatchwork for combining multiple ggplot2 graphs into one figure."
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
-    "title": "Hands-on Exercise 2",
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#tooltip-effect-with-tooltip-aesthetics",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#tooltip-effect-with-tooltip-aesthetics",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Tooltip effect with tooltip aesthetics",
+    "text": "Tooltip effect with tooltip aesthetics\n\np &lt;- ggplot(data = exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive(aes(tooltip = ID), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 6,\n  height_svg = 6*0.618\n)\n\n\n\n\n\n\np &lt;- ggplot(data = exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive(aes(tooltip = ID, data_id = ID), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 6,\n  height_svg = 6*0.618\n)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-multiple-information-on-tooltip",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-multiple-information-on-tooltip",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Displaying Multiple Information on tooltip",
+    "text": "Displaying Multiple Information on tooltip\n\nexam_data$tooltip &lt;- paste0(     \n  \"Name = \", exam_data$ID,   \"\\n Class = \", exam_data$CLASS, \"\\n Race = \", exam_data$RACE) \n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(tooltip = exam_data$tooltip), \n    stackgroups = TRUE,\n    binwidth = 1,\n    method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 8,\n  height_svg = 8*0.618\n)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#customising-tooltip-style",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#customising-tooltip-style",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Customising Tooltip style",
+    "text": "Customising Tooltip style\n\ntooltip_css &lt;- \"background-color:lightblue; #&lt;&lt;\nfont-style:bold; color:black;\" #&lt;&lt;\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(tooltip = ID), stackgroups = TRUE,  binwidth = 1, method = \"histodot\") +               scale_y_continuous(NULL, breaks = NULL)\ngirafe(      \n  ggobj = p,   \n  width_svg = 6,  \n  height_svg = 6*0.618,\n  options = list(    #&lt;&lt;\n    opts_tooltip(    #&lt;&lt;\n      css = tooltip_css)) #&lt;&lt;\n)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-statistics-on-tooltip",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-statistics-on-tooltip",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Displaying statistics on tooltip",
+    "text": "Displaying statistics on tooltip\n\ntooltip &lt;- function(y, ymax, accuracy = .01) {\n  mean &lt;- scales::number(y, accuracy = accuracy)\n  sem &lt;- scales::number(ymax - y, accuracy = accuracy)\n  paste(\"Mean maths scores:\", mean, \"+/-\", sem)\n}\n\ngg_point &lt;- ggplot(data=exam_data, aes(x = RACE)) +\n  stat_summary(aes(y = MATHS, tooltip = after_stat( tooltip(y, ymax))),  \n    fun.data = \"mean_se\", \n    geom = GeomInteractiveCol, fill = \"light green\") +\n  stat_summary(aes(y = MATHS), fun.data = mean_se, geom = \"errorbar\", width = 0.2, size = 0.2)\n\ngirafe(ggobj = gg_point,\n       width_svg = 8,\n       height_svg = 8*0.618)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#hover-effect-with-data_id-aesthetic",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#hover-effect-with-data_id-aesthetic",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Hover effect with data_id aesthetic",
+    "text": "Hover effect with data_id aesthetic\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618)\n\n\n\n\n\n\nStyling hover effect\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618,\n  options = list(\n    opts_hover(css = \"fill: red;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#combining-tooltip-and-hover-effect",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#combining-tooltip-and-hover-effect",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Combining tooltip and hover effect",
+    "text": "Combining tooltip and hover effect\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS, fill = RACE)) +\n  geom_dotplot_interactive( aes(tooltip = RACE, data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618,\n  options = list(\n    opts_hover(css = \"stroke: black;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#click-effect-with-onclick",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#click-effect-with-onclick",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Click effect with onclick",
+    "text": "Click effect with onclick\n\nexam_data$onclick &lt;- sprintf(\"window.open(\\\"%s%s\\\")\", \n                             \"https://www.moe.gov.sg/schoolfinder?journey=Primary%20school\", \n   as.character(exam_data$ID))\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(onclick = onclick), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggiraph",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggiraph",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Coordinated Multiple Views with ggiraph",
+    "text": "Coordinated Multiple Views with ggiraph\n\np1 &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\n\np2 &lt;- ggplot(data=exam_data, aes(x = ENGLISH)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\n\n\ngirafe(                   \n  code = print(p1 + p2),\n  width_svg = 6,        \n  height_svg = 3,\n  options = list(\n    opts_hover(css = \"fill: red;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-plot_ly",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-plot_ly",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Using plot_ly()",
+    "text": "Using plot_ly()\n\nplot_ly(data = exam_data, \n             x = ~MATHS, \n             y = ~ENGLISH,\n            color = ~RACE)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-ggplotly",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-ggplotly",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Using ggplotly()",
+    "text": "Using ggplotly()\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS, y = ENGLISH)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100),ylim=c(0,100))\nggplotly(p)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggplotly",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggplotly",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Coordinated Multiple Views with ggplotly()",
+    "text": "Coordinated Multiple Views with ggplotly()\n\nd &lt;- highlight_key(exam_data)\np1 &lt;- ggplot(data=d, \n            aes(x = MATHS, y = ENGLISH)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\np2 &lt;- ggplot(data=d, \n            aes(x = MATHS, y = SCIENCE)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\nsubplot(ggplotly(p1),\n        ggplotly(p2))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#dt-package",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#dt-package",
+    "title": "Hands-on Exercise 3.1",
+    "section": "DT package",
+    "text": "DT package\n\nDT::datatable(exam_data, class= \"compact\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#linked-brushing-crosstalk-method",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#linked-brushing-crosstalk-method",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Linked brushing: crosstalk method",
+    "text": "Linked brushing: crosstalk method\n\nd &lt;- highlight_key(exam_data) \np &lt;- ggplot(d, aes(ENGLISH, MATHS)) + \n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\ngg &lt;- highlight(ggplotly(p),\"plotly_selected\")  \n\ncrosstalk::bscols(gg, DT::datatable(d),widths = 5)"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "ISSS608-VAA-Min",
     "section": "",
-    "text": "pacman::p_load(ggrepel, patchwork, ggthemes, hrbrthemes, tidyverse)\n\n\n\n\nexam_data &lt;- read.csv(\"Exam_data.csv\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
-    "title": "Hands-on Exercise 2",
-    "section": "",
-    "text": "exam_data &lt;- read.csv(\"Exam_data.csv\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
-    "title": "Hands-on Exercise 2",
-    "section": "Working without ggrepel",
-    "text": "Working without ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label(aes(label = ID), hjust = .5, vjust = -.5) + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
-    "title": "Hands-on Exercise 2",
-    "section": "Working with ggrepel",
-    "text": "Working with ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label_repel(aes(label = ID), fontface = \"bold\") + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
-    "title": "Hands-on Exercise 2",
-    "section": "Using ggplot2 themes",
-    "text": "Using ggplot2 themes\n\nggplot(data=exam_data, aes(x=MATHS)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill = \"grey90\") + theme_linedraw() + ggtitle(\"Distribution of Maths scores\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
-    "title": "Hands-on Exercise 2",
-    "section": "Working with ggtheme package",
-    "text": "Working with ggtheme package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_solarized()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
-    "title": "Hands-on Exercise 2",
-    "section": "Working with hrbthemes package",
-    "text": "Working with hrbthemes package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter()\n\n\n\n\n\n\n\n\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter(axis_title_size = 18, base_size = 15, grid = \"Y\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
-    "title": "Hands-on Exercise 2",
-    "section": "Creating Composite Graphics: pathwork methods",
-    "text": "Creating Composite Graphics: pathwork methods\n\nTow-Column layout can use Plus Sign +\nParenthesis () are used to create subplot group\nTwo-Row layout can use Devision Sign /\n\n\nCombining two ggplot2 graphs\n\np1 + p2\n\n\n\n\n\n\n\n\n\n\nCombining three ggplot2 graphs\n“|” is to place the plots beside each other\n\n(p1 / p2) | p3\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure with tag\n\n((p1 / p2) | p3) + plot_annotation(tag_levels =  'I')\n\n\n\n\n\n\n\n\n\n\nCreating figure with insert\n\np3 + inset_element(p2, left = 0.02, bottom = 0.7, right = 0.5, top = 1)\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure by using patchwork and ggtheme\n\npatchwork &lt;- (p1 / p2) | p3 \npatchwork & theme_economist()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html",
-    "title": "Hands-on Exercise 3.2",
-    "section": "",
-    "text": "plotly is the R library for plotting interactive statistical graphs.\ngganimate is a ggplot extension for creating animated stastical graphs.\ngifski converts video frames to GIF animations using pngquant’s fancy features for efficient cross-frame palettes and temporal dithering. It produces animated GIFs that use thousands of colors per frame.\ngapminder is an excerpt of the data available at Gapminder.org. We just want to use its country_colors scheme."
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-a-static-population-bubble-plot",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-a-static-population-bubble-plot",
-    "title": "Hands-on Exercise 3.2",
-    "section": "Building a static population bubble plot",
-    "text": "Building a static population bubble plot\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young')"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-the-animated-bubble-plot",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-the-animated-bubble-plot",
-    "title": "Hands-on Exercise 3.2",
-    "section": "Building the animated bubble plot",
-    "text": "Building the animated bubble plot\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young') +\n  transition_time(Year) +\n  ease_aes('linear')\n\n\n\n\n\n\n\n\n\nUsing other gganimate\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young') +\n  transition_time(Year) +\nview_follow(fixed_x = TRUE, fixed_y = TRUE) +\nshadow_trail(0.1) +\nenter_grow() +\nexit_shrink() +\nease_aes(\"sine-in-out\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-ggplotly-method",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-ggplotly-method",
-    "title": "Hands-on Exercise 3.2",
-    "section": "Building an animated bubble plot: ggplotly() method",
-    "text": "Building an animated bubble plot: ggplotly() method\n\ngg &lt;- ggplot(globalPop, \n       aes(x = Old,y = Young, size = Population, colour = Country)) +\n  geom_point(aes(size = Population, frame = Year), alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(x = '% Aged', y = '% Young')\n\nggplotly(gg)\n\n\n\n\n\n\ngg &lt;- ggplot(globalPop, \n       aes(x = Old,y = Young, size = Population, colour = Country)) +\n  geom_point(aes(size = Population, frame = Year), alpha = 0.7) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(x = '% Aged', y = '% Young') + \n  theme(legend.position = 'none')\n\nggplotly(gg)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-plot_ly-method",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-plot_ly-method",
-    "title": "Hands-on Exercise 3.2",
-    "section": "Building an animated bubble plot: plot_ly() method",
-    "text": "Building an animated bubble plot: plot_ly() method\n\nbp &lt;- globalPop %&gt;%\n  plot_ly(x = ~Old, y = ~Young, size = ~Population, color = ~Continent, sizes = c(2, 100), frame = ~Year, text = ~Country, hoverinfo = \"text\", type = 'scatter', mode = 'markers') %&gt;%\n  \n  layout(showlegend = FALSE)\nbp"
+    "text": "Welcome to ISSS608 Visual Analytics and Application. In this website, you will find my coursework prepared for this course."
   }
 ]

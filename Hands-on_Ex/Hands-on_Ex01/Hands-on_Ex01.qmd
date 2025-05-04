@@ -186,7 +186,6 @@ ggplot(data=exam_data,
                size=4)               
 ```
 
-
 ## Working with stat - the geom() method
 
 ```{r}
@@ -199,7 +198,6 @@ ggplot(data=exam_data,
              size=4)          
 ```
 
-
 ## Adding a best fit curve on a scatterplot
 
 ```{r}
@@ -209,7 +207,6 @@ ggplot(data=exam_data,
   geom_smooth(method = lm, linewidth=0.5)
 ```
 
-
 # Essential Grammatical Elements in ggplot2: Facets
 
 ## Working with facet_wrap()
@@ -217,7 +214,6 @@ ggplot(data=exam_data,
 ```{r}
 ggplot(data=exam_data, aes(x=ENGLISH)) + geom_histogram(bins = 20) + facet_wrap(~ CLASS)
 ```
-
 
 ## facet_grid() function
 
@@ -228,7 +224,6 @@ ggplot(data=exam_data,
     facet_grid(~ CLASS)
 ```
 
-
 # Essential Grammatical Elements in ggplot2: Coordinates
 
 ## Working with Coordinate
@@ -238,7 +233,6 @@ ggplot(data=exam_data,
        aes(x=RACE)) +
   geom_bar() + coord_flip()
 ```
-
 
 ## Changing the y- and x-axis range
 
@@ -252,19 +246,17 @@ ggplot(data=exam_data,
                   ylim=c(0,100))
 ```
 
-
 # Essential Grammatical Elements in ggplot2: themes
 
-- background colour
-- size of fonts
-- gridlines
-- colour of labels
-Built-in themes include: - theme_gray() (default) - theme_bw() - theme_classic()
-
+-   background colour
+-   size of fonts
+-   gridlines
+-   colour of labels Built-in themes include: - theme_gray() (default) - theme_bw() - theme_classic()
 
 ## Working with theme
 
 Using **theme_classic()**
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=RACE)) +
@@ -274,6 +266,7 @@ ggplot(data=exam_data,
 ```
 
 Using **theme_minimal()**
+
 ```{r}
 ggplot(data=exam_data, 
        aes(x=RACE)) +
@@ -281,4 +274,3 @@ ggplot(data=exam_data,
   coord_flip() +
   theme_minimal()
 ```
-
