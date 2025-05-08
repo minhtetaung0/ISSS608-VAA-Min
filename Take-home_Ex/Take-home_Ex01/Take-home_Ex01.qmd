@@ -48,7 +48,7 @@ sg_res <- read.csv("data/respopagesex2024.csv")
 This is the description of the data:
 
 | Column Name | Description | Data Type |
-|-----------------|---------------------------------------|-----------------|
+|------------------------|------------------------|------------------------|
 | PA | Planning Area (e.g., Tampines, Woodlands, etc.) | Categorical |
 | Age | Age group (e.g., "0", "5", ..., "90+", typically in 5-year bins) | Ordinal (Factor or Integer) |
 | Sex | Gender category: "Males" or "Females" | Categorical |
@@ -172,7 +172,7 @@ From the visualizations, areas like ***Woodlands, Tampines, Sengkang, and Punggo
 
 These insights are crucial for urban planning, healthcare provisioning, and policymaking, as they highlight the varying age structures and potential future needs of each planning area.
 
-```{r, fig.height= 15, fig.width= 18}
+```{r, fig.height= 20, fig.width= 25}
 # Filter out the top 24 PA that has the highest population 
 top_24_pas <- sg_res %>%
   group_by(PA) %>%
@@ -197,7 +197,12 @@ ggplot(pyramid_data_top24, aes(x = Age, y = Pop, fill = Sex)) +
   theme_minimal(base_size = 9) +
   theme(axis.title.x = element_text(size = 25),
         axis.title.y = element_text(size = 25),
-        plot.title = element_text(size = 35)) +
+        axis.text.y = element_text(size = 13),
+          axis.text.x = element_text(size = 13),
+        strip.text = element_text(size = 16, face = "bold"),
+        legend.title = element_text(size = 25),
+  legend.text = element_text(size = 20),
+        plot.title = element_text(size = 45)) +
   scale_fill_manual(values = c("Males" = "skyblue", "Females" = "salmon"))
 ```
 
@@ -205,6 +210,176 @@ ggplot(pyramid_data_top24, aes(x = Age, y = Pop, fill = Sex)) +
 
 With an emphasis on planning areas with the largest populations, this publication offers a thorough demographic estimate of Singapore's resident population in 2024. The analysis uses systematic data preparation and effective visualization approaches to highlight the top 28 planning areas by total population and evaluate their gender distribution using diverging bar charts. Furthermore, the top 24 areas' population pyramids provide information about the age distribution of each region, highlighting places with younger populations compared to those with aging populations. These visual aids are useful for influencing public discussions, urban planning, and policy formation; they are particularly useful for a local media article that aims to clarify Singapore's changing demographics.
 
-# 5. Reference
+# 5. Phase II
+
+## 5.1 Original Visualization
+
+```{r}
+total_area <- sg_res %>%
+  group_by(PA) %>%
+  summarise(total = sum(Pop), .groups = "drop")
+
+elderly <- sg_res %>%
+  filter(Age >= 65, !is.na(PA), !is.na(Pop))
+
+elderly_area <- elderly %>%
+  group_by(PA) %>%
+  summarise(elderly = sum(Pop), .groups = "drop")
+
+aging_ratio <- left_join(total_area, elderly_area, by = "PA") %>%
+  filter(total > 0) %>%
+  mutate(elderly = replace_na(elderly, 0),
+         aging_percentage = elderly / total)
+```
+
+```{r,fig.height=15,fig.width=10}
+ggplot(aging_ratio, aes(x = reorder(PA, aging_percentage), 
+                        y = aging_percentage)) +
+  geom_col(fill = "lightpink") +
+  coord_flip() +
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  labs(
+    title = "Proportion of Elderly (65+) by Planning Area",
+    x = "Planning Area",
+    y = "Elderly Proportion"
+  ) +
+  theme_minimal(base_size = 12) +
+    theme(axis.text.y = element_text(size = 13),
+          axis.text.x = element_text(size = 13),
+    plot.title = element_text(size = 25, face = "bold",
+                              hjust =0.5),
+    plot.margin = margin(10, 20, 10, 10))
+```
+
+## 5.2 Good Points of the Visualization
+
+::: callout-tip
+## Good Points of the Visualization
+
+1.  Clear Sorting for Comparison
+
+    -   The planning areas are sorted in **descending order of elderly proportion**, which helps the viewer quickly identify the areas with the highest elderly population share.
+
+    -   Sorting enhances readability and supports effective ranking-based insights.
+
+2.  Simple and Clean Design
+
+    -   The chart uses a horizontal bar layout with clean axis labels and a minimal theme.
+
+    -   This layout makes it easy to read long planning area names and compare bar lengths visually.
+
+3.  Focused Message
+
+    -   The title, “Proportion of Elderly (65+) by Planning Area,” is specific and directly tells the viewer what to focus on.
+
+    -   The single-variable focus avoids visual clutter and keeps the viewer’s attention on a key demographic issue.
+:::
+
+## 5.3 Areas for further Improvement
+
+::: callout-warning
+## Areas for Further Improvement
+
+1.  Lack of Context from Other Age Groups
+    -   The chart shows only the elderly proportion, which may mislead viewers if other age groups are significant in total composition.
+
+    -   There's no insight into whether the area also has many children or working adults — a stacked comparison could give more complete demographic context.
+2.  Missing Data Labels
+    -   The chart does not show the actual percentage values on the bars, requiring viewers to estimate from the axis grid.
+
+    -   Adding data labels (e.g., "23.5%") improves precision and saves interpretation time.
+    
+:::
+
+## 5.4 Makeover Version of the data visualization
+
+```{r, fig.height= 20, fig.width= 15}
+sg_age_grouped <- sg_res %>%
+  mutate(age_group = case_when(
+    Age >= 65 ~ "Elderly",
+    Age >= 24 ~ "Working Adults",
+    TRUE ~ "Children"
+  ))
+
+
+pop_by_group <- sg_age_grouped %>%
+  group_by(PA, age_group) %>%
+  summarise(Pop = sum(Pop), .groups = "drop")
+
+
+pop_percent <- pop_by_group %>%
+  group_by(PA) %>%
+  mutate(total = sum(Pop),
+         percent = Pop / total) %>%
+  ungroup() %>%
+  filter(total > 0) 
+
+
+elderly_percent <- pop_percent %>%
+  filter(age_group == "Elderly") %>%
+  select(PA, elderly_percent = percent)
+
+
+pop_percent <- left_join(pop_percent, elderly_percent, by = "PA") %>%
+  mutate(
+    PA = fct_reorder(PA, +elderly_percent),
+    percent_label = paste0(round(percent * 100, 1), "%")
+  )
+
+pop_percent$age_group <- factor(pop_percent$age_group,
+                                levels = c("Children", "Working Adults", "Elderly"))
+
+
+ggplot(pop_percent, aes(x = PA, y = percent, fill = age_group)) +
+  geom_col() +
+  geom_text(aes(label = percent_label),
+            position = position_stack(vjust = 0.5),
+            size = 5, color = "black") +
+  scale_y_continuous(labels = percent_format(accuracy = 1)) +
+  scale_fill_manual(values = c("Elderly" = "#b2df8a",
+                               "Working Adults" = "#6baed6",
+                               "Children" = "#a6cee3")) +
+  coord_flip() +
+  labs(
+    title = "Age Group Composition by Planning Area (Sorted by Elderly %)",
+    x = "Planning Area",
+    y = "Percentage",
+    fill = "Age Group"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(axis.text.y = element_text(size = 15),
+          axis.text.x = element_text(size = 15),
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20),
+        legend.title = element_text(size = 20),
+  legend.text = element_text(size = 15),
+    plot.title = element_text(size = 25, face = "bold",
+                              hjust =0.5),
+    plot.margin = margin(10, 20, 10, 10))
+```
+::: callout-tip
+## Improvements
+
+1.  Adds Complete Age Context
+    -   Instead of showing only elderly proportion, this stacked bar chart displays Children, Working Adults, and Elderly, giving a holistic view of age distribution across planning areas.
+    
+2.  Sorts by Elderly Proportion
+    -   Planning areas are ordered by increasing elderly percentage, making it easy to visually compare which areas are "older" in terms of demographic weight.
+
+3.  Shows Data Labels
+    -   Each bar segment includes a percentage label, improving accuracy and interpretability without requiring the viewer to estimate from the axis.
+    
+:::
+
+::: callout-tip
+## Advantages
+
+- Contextual Insight: You can immediately compare not just who has the most elderly, but how balanced or skewed each area's population is across age groups.
+
+- Effective Communication: Better typography and labels make the visualization suitable for reports or presentations to decision-makers.
+
+:::
+
+# 6. Reference
 
 The Data Link: [Singapore Residents by Planning Area / Subzone, Single Year of Age and Sex, June 2024](https://www.singstat.gov.sg/find-data/search-by-theme/population/geographic-distribution/latest-data)

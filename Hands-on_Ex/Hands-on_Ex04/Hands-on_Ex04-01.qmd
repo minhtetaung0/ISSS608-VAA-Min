@@ -1,0 +1,193 @@
+---
+title: "Hands-on Exercise 4.1"
+author: "Min Htet Aung"
+description: "This is the Hands-on Exercise 4.1" 
+date: "May 7, 2025"
+date-modified: "last-modified"
+format: html
+editor: visual
+execute: 
+  eval: true
+  echo: true
+  warning: false
+  freeze: true
+---
+
+# Getting Started
+
+## Installing and loading packages
+
+```{r}
+pacman::p_load(ggdist, ggridges, ggthemes, colorspace, tidyverse)
+```
+
+## Importing Data
+
+```{r}
+exam <- read_csv("data/Exam_data.csv")
+```
+
+# Visualising Distribution with Ridgeline Plot
+
+```{r}
+ggplot(exam, aes(x = ENGLISH,
+                 y = CLASS))+
+  geom_density_ridges(scale= 3,
+                      rel_min_height = 0.01, bandwidith = 3.4,
+                      fill = lighten("#7097BB", .3),
+                      color = "white") + 
+  scale_x_continuous(name = "English grades",
+                     expand = c(0,0))+
+  scale_y_discrete(name= NULL, expand = expansion(add = c(0.2,2.6))) +
+  theme_ridges()
+```
+
+## Varying fill colors along the x axis
+
+```{r}
+ggplot(exam, 
+       aes(x = ENGLISH, 
+           y = CLASS,
+           fill = stat(x))) +
+  geom_density_ridges_gradient(
+    scale = 3,
+    rel_min_height = 0.01) +
+  scale_fill_viridis_c(name = "Temp. [F]",
+                       option = "C") +
+  scale_x_continuous(
+    name = "English grades",
+    expand = c(0, 0)
+  ) +
+  scale_y_discrete(name = NULL, expand = expansion(add = c(0.2, 2.6))) +
+  theme_ridges()
+```
+
+## Mapping the probabilities directly onto colour
+
+```{r}
+ggplot(exam,
+       aes(x = ENGLISH, 
+           y = CLASS, 
+           fill = 0.5 - abs(0.5-stat(ecdf)))) +
+  stat_density_ridges(geom = "density_ridges_gradient", 
+                      calc_ecdf = TRUE) +
+  scale_fill_viridis_c(name = "Tail probability",
+                       direction = -1) +
+  theme_ridges()
+```
+
+## Ridgeline plots with quantile lines
+
+```{r}
+ggplot(exam,
+       aes(x = ENGLISH, 
+           y = CLASS, 
+           fill = factor(stat(quantile))
+           )) +
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    calc_ecdf = TRUE, 
+    quantiles = 4,
+    quantile_lines = TRUE) +
+  scale_fill_viridis_d(name = "Quartiles") +
+  theme_ridges()
+```
+
+```{r}
+ggplot(exam,
+       aes(x = ENGLISH, 
+           y = CLASS, 
+           fill = factor(stat(quantile))
+           )) +
+  stat_density_ridges(
+    geom = "density_ridges_gradient",
+    calc_ecdf = TRUE, 
+    quantiles = c(0.025, 0.975)
+    ) +
+  scale_fill_manual(
+    name = "Probability",
+    values = c("#FF0000A0", "#A0A0A0A0", "#0000FFA0"),
+    labels = c("(0, 0.025]", "(0.025, 0.975]", "(0.975, 1]")
+  ) +
+  theme_ridges()
+```
+
+# Visualising Distribution with Raincloud Plot
+
+A raincloud plot is an enhanced data visualization that combines a half-density plot (the “raincloud”) with a boxplot. Unlike boxplots, it shows where data clusters and can reveal multiple peaks, indicating subgroup patterns.
+
+In this section, you'll learn to create a raincloud plot using `ggdist` and `ggplot2` to visualize the distribution of English scores by race.
+
+
+## Plotting a Half Eye graph
+
+```{r}
+ggplot(exam, 
+       aes(x = RACE, 
+           y = ENGLISH)) +
+  stat_halfeye(adjust = 0.5,
+               justification = -0.2,
+               .width = 0,
+               point_colour = NA)
+```
+
+
+## Adding the boxplot with `geom_boxplot()`
+
+Add the second geometry layer using `geom_boxplot()` of `ggplot2`. This produces a narrow boxplot. We reduce the width and adjust the opacity.
+
+```{r}
+ggplot(exam, 
+       aes(x = RACE, 
+           y = ENGLISH)) +
+  stat_halfeye(adjust = 0.5,
+               justification = -0.2,
+               .width = 0,
+               point_colour = NA) +
+  geom_boxplot(width = .20,
+               outlier.shape = NA)
+```
+
+
+## Adding the Dot Plots with `stat_dots()`
+
+`stat_dots()` of `ggdist` package. This produces a half-dotplot, which is similar to a histogram that indicates the number of samples (number of dots) in each bin.
+
+
+```{r}
+ggplot(exam, 
+       aes(x = RACE, 
+           y = ENGLISH)) +
+  stat_halfeye(adjust = 0.5,
+               justification = -0.2,
+               .width = 0,
+               point_colour = NA) +
+  geom_boxplot(width = .20,
+               outlier.shape = NA) +
+  stat_dots(side = "left", 
+            justification = 1.2, 
+            binwidth = .5,
+            dotsize = 2)
+```
+
+
+## Final touch of the plot
+
+```{r}
+ggplot(exam, 
+       aes(x = RACE, 
+           y = ENGLISH)) +
+  stat_halfeye(adjust = 0.5,
+               justification = -0.2,
+               .width = 0,
+               point_colour = NA) +
+  geom_boxplot(width = .20,
+               outlier.shape = NA) +
+  stat_dots(side = "left", 
+            justification = 1.2, 
+            binwidth = .5,
+            dotsize = 1.5) +
+  coord_flip() +
+  theme_economist()
+```
+

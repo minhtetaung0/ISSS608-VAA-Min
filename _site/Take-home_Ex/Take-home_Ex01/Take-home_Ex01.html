@@ -146,6 +146,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html">
  <span class="dropdown-text">Hands-on Exercise 3.2</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html">
+ <span class="dropdown-text">Hands-on_Exercise 4.1</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html">
+ <span class="dropdown-text">Hands-on_Exercise 4.2</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html">
+ <span class="dropdown-text">Hands-on_Exercise 4.3</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html">
+ <span class="dropdown-text">Hands-on_Exercise 4.4</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -207,6 +223,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#age-pyramid-of-top-24-planning-areas" id="toc-age-pyramid-of-top-24-planning-areas" class="nav-link" data-scroll-target="#age-pyramid-of-top-24-planning-areas">3.2 Age Pyramid of Top 24 Planning Areas</a></li>
   </ul></li>
   <li><a href="#summary" id="toc-summary" class="nav-link" data-scroll-target="#summary">4. Summary</a></li>
+  <li><a href="#phase-ii" id="toc-phase-ii" class="nav-link" data-scroll-target="#phase-ii">5. Phase II</a>
+  <ul class="collapse">
+  <li><a href="#original-visualization" id="toc-original-visualization" class="nav-link" data-scroll-target="#original-visualization">5.1 Original Visualization</a></li>
+  <li><a href="#good-points-of-the-visualization" id="toc-good-points-of-the-visualization" class="nav-link" data-scroll-target="#good-points-of-the-visualization">5.2 Good Points of the Visualization</a></li>
+  <li><a href="#areas-for-further-improvement" id="toc-areas-for-further-improvement" class="nav-link" data-scroll-target="#areas-for-further-improvement">5.3 Areas for further Improvement</a></li>
+  <li><a href="#makeover-version-of-the-data-visualization" id="toc-makeover-version-of-the-data-visualization" class="nav-link" data-scroll-target="#makeover-version-of-the-data-visualization">5.4 Makeover Version of the data visualization</a></li>
+  </ul></li>
   <li><a href="#reference" id="toc-reference" class="nav-link" data-scroll-target="#reference">5. Reference</a></li>
   </ul>
 </nav>
@@ -245,7 +268,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Modified</div>
     <div class="quarto-title-meta-contents">
-      <p class="date-modified">May 4, 2025</p>
+      <p class="date-modified">May 8, 2025</p>
     </div>
   </div>
     
@@ -285,9 +308,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>This is the description of the data:</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 23%">
-<col style="width: 53%">
-<col style="width: 23%">
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -520,6 +543,229 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="summary" class="level1">
 <h1>4. Summary</h1>
 <p>With an emphasis on planning areas with the largest populations, this publication offers a thorough demographic estimate of Singapore’s resident population in 2024. The analysis uses systematic data preparation and effective visualization approaches to highlight the top 28 planning areas by total population and evaluate their gender distribution using diverging bar charts. Furthermore, the top 24 areas’ population pyramids provide information about the age distribution of each region, highlighting places with younger populations compared to those with aging populations. These visual aids are useful for influencing public discussions, urban planning, and policy formation; they are particularly useful for a local media article that aims to clarify Singapore’s changing demographics.</p>
+</section>
+<section id="phase-ii" class="level1">
+<h1>5. Phase II</h1>
+<section id="original-visualization" class="level2">
+<h2 class="anchored" data-anchor-id="original-visualization">5.1 Original Visualization</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>total_area <span class="ot">&lt;-</span> sg_res <span class="sc">%&gt;%</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(PA) <span class="sc">%&gt;%</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">total =</span> <span class="fu">sum</span>(Pop), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>elderly <span class="ot">&lt;-</span> sg_res <span class="sc">%&gt;%</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(Age <span class="sc">&gt;=</span> <span class="dv">65</span>, <span class="sc">!</span><span class="fu">is.na</span>(PA), <span class="sc">!</span><span class="fu">is.na</span>(Pop))</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>elderly_area <span class="ot">&lt;-</span> elderly <span class="sc">%&gt;%</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(PA) <span class="sc">%&gt;%</span></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">elderly =</span> <span class="fu">sum</span>(Pop), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a>aging_ratio <span class="ot">&lt;-</span> <span class="fu">left_join</span>(total_area, elderly_area, <span class="at">by =</span> <span class="st">"PA"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(total <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">elderly =</span> <span class="fu">replace_na</span>(elderly, <span class="dv">0</span>),</span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a>         <span class="at">aging_percentage =</span> elderly <span class="sc">/</span> total)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(aging_ratio, <span class="fu">aes</span>(<span class="at">x =</span> <span class="fu">reorder</span>(PA, aging_percentage), </span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>                        <span class="at">y =</span> aging_percentage)) <span class="sc">+</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>(<span class="at">fill =</span> <span class="st">"lightpink"</span>) <span class="sc">+</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> scales<span class="sc">::</span><span class="fu">percent_format</span>(<span class="at">accuracy =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Proportion of Elderly (65+) by Planning Area"</span>,</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Planning Area"</span>,</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Elderly Proportion"</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="fu">theme</span>(<span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">13</span>),</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>          <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">13</span>),</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">25</span>, <span class="at">face =</span> <span class="st">"bold"</span>,</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>                              <span class="at">hjust =</span><span class="fl">0.5</span>),</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.margin =</span> <span class="fu">margin</span>(<span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">10</span>, <span class="dv">10</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Take-home_Ex01_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="960"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="good-points-of-the-visualization" class="level2">
+<h2 class="anchored" data-anchor-id="good-points-of-the-visualization">5.2 Good Points of the Visualization</h2>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Good Points of the Visualization
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li><p>Clear Sorting for Comparison</p>
+<ul>
+<li><p>The planning areas are sorted in <strong>descending order of elderly proportion</strong>, which helps the viewer quickly identify the areas with the highest elderly population share.</p></li>
+<li><p>Sorting enhances readability and supports effective ranking-based insights.</p></li>
+</ul></li>
+<li><p>Simple and Clean Design</p>
+<ul>
+<li><p>The chart uses a horizontal bar layout with clean axis labels and a minimal theme.</p></li>
+<li><p>This layout makes it easy to read long planning area names and compare bar lengths visually.</p></li>
+</ul></li>
+<li><p>Focused Message</p>
+<ul>
+<li><p>The title, “Proportion of Elderly (65+) by Planning Area,” is specific and directly tells the viewer what to focus on.</p></li>
+<li><p>The single-variable focus avoids visual clutter and keeps the viewer’s attention on a key demographic issue.</p></li>
+</ul></li>
+</ol>
+</div>
+</div>
+</section>
+<section id="areas-for-further-improvement" class="level2">
+<h2 class="anchored" data-anchor-id="areas-for-further-improvement">5.3 Areas for further Improvement</h2>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Areas for Further Improvement
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>Lack of Context from Other Age Groups
+<ul>
+<li><p>The chart shows only the elderly proportion, which may mislead viewers if other age groups are significant in total composition.</p></li>
+<li><p>There’s no insight into whether the area also has many children or working adults — a stacked comparison could give more complete demographic context.</p></li>
+</ul></li>
+<li>Missing Data Labels
+<ul>
+<li><p>The chart does not show the actual percentage values on the bars, requiring viewers to estimate from the axis grid.</p></li>
+<li><p>Adding data labels (e.g., “23.5%”) improves precision and saves interpretation time.</p></li>
+</ul></li>
+</ol>
+</div>
+</div>
+</section>
+<section id="makeover-version-of-the-data-visualization" class="level2">
+<h2 class="anchored" data-anchor-id="makeover-version-of-the-data-visualization">5.4 Makeover Version of the data visualization</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>sg_age_grouped <span class="ot">&lt;-</span> sg_res <span class="sc">%&gt;%</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">age_group =</span> <span class="fu">case_when</span>(</span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    Age <span class="sc">&gt;=</span> <span class="dv">65</span> <span class="sc">~</span> <span class="st">"Elderly"</span>,</span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    Age <span class="sc">&gt;=</span> <span class="dv">24</span> <span class="sc">~</span> <span class="st">"Working Adults"</span>,</span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> <span class="st">"Children"</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>  ))</span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a>pop_by_group <span class="ot">&lt;-</span> sg_age_grouped <span class="sc">%&gt;%</span></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(PA, age_group) <span class="sc">%&gt;%</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarise</span>(<span class="at">Pop =</span> <span class="fu">sum</span>(Pop), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a>pop_percent <span class="ot">&lt;-</span> pop_by_group <span class="sc">%&gt;%</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(PA) <span class="sc">%&gt;%</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">total =</span> <span class="fu">sum</span>(Pop),</span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a>         <span class="at">percent =</span> Pop <span class="sc">/</span> total) <span class="sc">%&gt;%</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(total <span class="sc">&gt;</span> <span class="dv">0</span>) </span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-21"><a href="#cb12-21" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-22"><a href="#cb12-22" aria-hidden="true" tabindex="-1"></a>elderly_percent <span class="ot">&lt;-</span> pop_percent <span class="sc">%&gt;%</span></span>
+<span id="cb12-23"><a href="#cb12-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(age_group <span class="sc">==</span> <span class="st">"Elderly"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-24"><a href="#cb12-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(PA, <span class="at">elderly_percent =</span> percent)</span>
+<span id="cb12-25"><a href="#cb12-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-26"><a href="#cb12-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-27"><a href="#cb12-27" aria-hidden="true" tabindex="-1"></a>pop_percent <span class="ot">&lt;-</span> <span class="fu">left_join</span>(pop_percent, elderly_percent, <span class="at">by =</span> <span class="st">"PA"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb12-28"><a href="#cb12-28" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb12-29"><a href="#cb12-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">PA =</span> <span class="fu">fct_reorder</span>(PA, <span class="sc">+</span>elderly_percent),</span>
+<span id="cb12-30"><a href="#cb12-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">percent_label =</span> <span class="fu">paste0</span>(<span class="fu">round</span>(percent <span class="sc">*</span> <span class="dv">100</span>, <span class="dv">1</span>), <span class="st">"%"</span>)</span>
+<span id="cb12-31"><a href="#cb12-31" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb12-32"><a href="#cb12-32" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-33"><a href="#cb12-33" aria-hidden="true" tabindex="-1"></a>pop_percent<span class="sc">$</span>age_group <span class="ot">&lt;-</span> <span class="fu">factor</span>(pop_percent<span class="sc">$</span>age_group,</span>
+<span id="cb12-34"><a href="#cb12-34" aria-hidden="true" tabindex="-1"></a>                                <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Children"</span>, <span class="st">"Working Adults"</span>, <span class="st">"Elderly"</span>))</span>
+<span id="cb12-35"><a href="#cb12-35" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-36"><a href="#cb12-36" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-37"><a href="#cb12-37" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(pop_percent, <span class="fu">aes</span>(<span class="at">x =</span> PA, <span class="at">y =</span> percent, <span class="at">fill =</span> age_group)) <span class="sc">+</span></span>
+<span id="cb12-38"><a href="#cb12-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_col</span>() <span class="sc">+</span></span>
+<span id="cb12-39"><a href="#cb12-39" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_text</span>(<span class="fu">aes</span>(<span class="at">label =</span> percent_label),</span>
+<span id="cb12-40"><a href="#cb12-40" aria-hidden="true" tabindex="-1"></a>            <span class="at">position =</span> <span class="fu">position_stack</span>(<span class="at">vjust =</span> <span class="fl">0.5</span>),</span>
+<span id="cb12-41"><a href="#cb12-41" aria-hidden="true" tabindex="-1"></a>            <span class="at">size =</span> <span class="dv">5</span>, <span class="at">color =</span> <span class="st">"black"</span>) <span class="sc">+</span></span>
+<span id="cb12-42"><a href="#cb12-42" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">labels =</span> <span class="fu">percent_format</span>(<span class="at">accuracy =</span> <span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb12-43"><a href="#cb12-43" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Elderly"</span> <span class="ot">=</span> <span class="st">"#b2df8a"</span>,</span>
+<span id="cb12-44"><a href="#cb12-44" aria-hidden="true" tabindex="-1"></a>                               <span class="st">"Working Adults"</span> <span class="ot">=</span> <span class="st">"#6baed6"</span>,</span>
+<span id="cb12-45"><a href="#cb12-45" aria-hidden="true" tabindex="-1"></a>                               <span class="st">"Children"</span> <span class="ot">=</span> <span class="st">"#a6cee3"</span>)) <span class="sc">+</span></span>
+<span id="cb12-46"><a href="#cb12-46" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_flip</span>() <span class="sc">+</span></span>
+<span id="cb12-47"><a href="#cb12-47" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb12-48"><a href="#cb12-48" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Age Group Composition by Planning Area (Sorted by Elderly %)"</span>,</span>
+<span id="cb12-49"><a href="#cb12-49" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Planning Area"</span>,</span>
+<span id="cb12-50"><a href="#cb12-50" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Percentage"</span>,</span>
+<span id="cb12-51"><a href="#cb12-51" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> <span class="st">"Age Group"</span></span>
+<span id="cb12-52"><a href="#cb12-52" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb12-53"><a href="#cb12-53" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(<span class="at">base_size =</span> <span class="dv">12</span>) <span class="sc">+</span></span>
+<span id="cb12-54"><a href="#cb12-54" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">15</span>),</span>
+<span id="cb12-55"><a href="#cb12-55" aria-hidden="true" tabindex="-1"></a>          <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">15</span>),</span>
+<span id="cb12-56"><a href="#cb12-56" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.x =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">20</span>),</span>
+<span id="cb12-57"><a href="#cb12-57" aria-hidden="true" tabindex="-1"></a>        <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">20</span>),</span>
+<span id="cb12-58"><a href="#cb12-58" aria-hidden="true" tabindex="-1"></a>        <span class="at">legend.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">20</span>),</span>
+<span id="cb12-59"><a href="#cb12-59" aria-hidden="true" tabindex="-1"></a>  <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">15</span>),</span>
+<span id="cb12-60"><a href="#cb12-60" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">25</span>, <span class="at">face =</span> <span class="st">"bold"</span>,</span>
+<span id="cb12-61"><a href="#cb12-61" aria-hidden="true" tabindex="-1"></a>                              <span class="at">hjust =</span><span class="fl">0.5</span>),</span>
+<span id="cb12-62"><a href="#cb12-62" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.margin =</span> <span class="fu">margin</span>(<span class="dv">10</span>, <span class="dv">20</span>, <span class="dv">10</span>, <span class="dv">10</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Take-home_Ex01_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="1440"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Improvements
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>Adds Complete Age Context
+<ul>
+<li>Instead of showing only elderly proportion, this stacked bar chart displays Children, Working Adults, and Elderly, giving a holistic view of age distribution across planning areas.</li>
+</ul></li>
+<li>Sorts by Elderly Proportion
+<ul>
+<li>Planning areas are ordered by increasing elderly percentage, making it easy to visually compare which areas are “older” in terms of demographic weight.</li>
+</ul></li>
+<li>Shows Data Labels
+<ul>
+<li>Each bar segment includes a percentage label, improving accuracy and interpretability without requiring the viewer to estimate from the axis.</li>
+</ul></li>
+</ol>
+</div>
+</div>
+<div class="callout callout-style-default callout-tip callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Advantages
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<ul>
+<li><p>Contextual Insight: You can immediately compare not just who has the most elderly, but how balanced or skewed each area’s population is across age groups.</p></li>
+<li><p>Effective Communication: Better typography and labels make the visualization suitable for reports or presentations to decision-makers.</p></li>
+</ul>
+</div>
+</div>
+</section>
 </section>
 <section id="reference" class="level1">
 <h1>5. Reference</h1>
