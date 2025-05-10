@@ -21,13 +21,11 @@ execute:
 pacman::p_load(ggstatsplot, tidyverse)
 ```
 
-
 ## Importing data
 
 ```{r}
 exam <- read_csv("data/Exam_data.csv")
 ```
-
 
 ## One-sample test: `gghistostats()` method
 
@@ -43,7 +41,6 @@ gghistostats(
 )
 ```
 
-
 ## Two-sample mean test: `ggbetweenstats()`
 
 ```{r}
@@ -55,7 +52,6 @@ ggbetweenstats(
   messages = FALSE
 )
 ```
-
 
 ## Oneway ANOVA Test: `ggbetweenstats()` method
 
@@ -73,7 +69,6 @@ ggbetweenstats(
 )
 ```
 
-
 ## Significant Test of Correlation: `ggscatterstats()`
 
 ```{r}
@@ -84,7 +79,6 @@ ggscatterstats(
   marginal = FALSE,
   )
 ```
-
 
 ## Significant Test of Association (Depedence) : `ggbarstats()` methods
 

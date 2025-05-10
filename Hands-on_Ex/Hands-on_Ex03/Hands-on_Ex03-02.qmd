@@ -13,14 +13,12 @@ execute:
   freeze: true
 ---
 
-
 # Getting Started
 
-- plotly is the R library for plotting interactive statistical graphs.
-- gganimate is a ggplot extension for creating animated stastical graphs.
-- gifski converts video frames to GIF animations using pngquant’s fancy features for efficient cross-frame palettes and temporal dithering. It produces animated GIFs that use thousands of colors per frame.
-- gapminder is an excerpt of the data available at Gapminder.org. We just want to use its country_colors scheme.
-
+-   plotly is the R library for plotting interactive statistical graphs.
+-   gganimate is a ggplot extension for creating animated stastical graphs.
+-   gifski converts video frames to GIF animations using pngquant’s fancy features for efficient cross-frame palettes and temporal dithering. It produces animated GIFs that use thousands of colors per frame.
+-   gapminder is an excerpt of the data available at Gapminder.org. We just want to use its country_colors scheme.
 
 # Loading Packages
 
@@ -28,7 +26,6 @@ execute:
 pacman::p_load(readxl, gifski, gapminder,
                plotly, gganimate, tidyverse)
 ```
-
 
 # Importing Data
 
@@ -39,15 +36,13 @@ globalPop <- read_xls("data/GlobalPopulation.xls",sheet="Data") %>%
   mutate(Year = as.integer(Year))
 ```
 
-
 # Animated Data Visualisation: gganimate
 
-- transition_*() defines how the data should be spread out and how it relates to itself across time.
-- view_*() defines how the positional scales should change along the animation.
-- shadow_*() defines how data from other points in time should be presented in the given point in time.
-- enter_*()/exit_*() defines how new data should appear and how old data should disappear during the course of the animation.
-- ease_aes() defines how different aesthetics should be eased during transitions.
-
+-   transition\_\*() defines how the data should be spread out and how it relates to itself across time.
+-   view\_\*() defines how the positional scales should change along the animation.
+-   shadow\_\*() defines how data from other points in time should be presented in the given point in time.
+-   enter\_*()/exit\_*() defines how new data should appear and how old data should disappear during the course of the animation.
+-   ease_aes() defines how different aesthetics should be eased during transitions.
 
 ## Building a static population bubble plot
 
@@ -58,7 +53,6 @@ ggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) 
   scale_size(range = c(2, 12)) +
   labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young') 
 ```
-
 
 ## Building the animated bubble plot
 
@@ -71,7 +65,6 @@ ggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) 
   transition_time(Year) +
   ease_aes('linear')
 ```
-
 
 ### Using other gganimate
 
@@ -89,9 +82,7 @@ exit_shrink() +
 ease_aes("sine-in-out")
 ```
 
-
 # Animated Data Visualisation: plotly
-
 
 ## Building an animated bubble plot: ggplotly() method
 
@@ -106,7 +97,6 @@ gg <- ggplot(globalPop,
 ggplotly(gg)
 ```
 
-
 ```{r}
 gg <- ggplot(globalPop, 
        aes(x = Old,y = Young, size = Population, colour = Country)) +
@@ -119,7 +109,6 @@ gg <- ggplot(globalPop,
 ggplotly(gg)
 ```
 
-
 ## Building an animated bubble plot: plot_ly() method
 
 ```{r}
@@ -129,5 +118,3 @@ bp <- globalPop %>%
   layout(showlegend = FALSE)
 bp
 ```
-
-

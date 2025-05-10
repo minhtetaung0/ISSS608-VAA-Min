@@ -118,7 +118,6 @@ A raincloud plot is an enhanced data visualization that combines a half-density 
 
 In this section, you'll learn to create a raincloud plot using `ggdist` and `ggplot2` to visualize the distribution of English scores by race.
 
-
 ## Plotting a Half Eye graph
 
 ```{r}
@@ -130,7 +129,6 @@ ggplot(exam,
                .width = 0,
                point_colour = NA)
 ```
-
 
 ## Adding the boxplot with `geom_boxplot()`
 
@@ -148,11 +146,9 @@ ggplot(exam,
                outlier.shape = NA)
 ```
 
-
 ## Adding the Dot Plots with `stat_dots()`
 
 `stat_dots()` of `ggdist` package. This produces a half-dotplot, which is similar to a histogram that indicates the number of samples (number of dots) in each bin.
-
 
 ```{r}
 ggplot(exam, 
@@ -169,7 +165,6 @@ ggplot(exam,
             binwidth = .5,
             dotsize = 2)
 ```
-
 
 ## Final touch of the plot
 
@@ -190,4 +185,3 @@ ggplot(exam,
   coord_flip() +
   theme_economist()
 ```
-

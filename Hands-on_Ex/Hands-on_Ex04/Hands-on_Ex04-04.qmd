@@ -17,24 +17,21 @@ execute:
 
 ## Overview
 
-- plotting funnel plots by using funnelPlotR package,
-- plotting static funnel plot by using ggplot2 package, and
-- plotting interactive funnel plot by using both plotly R and ggplot2 packages.
-
+-   plotting funnel plots by using funnelPlotR package,
+-   plotting static funnel plot by using ggplot2 package, and
+-   plotting interactive funnel plot by using both plotly R and ggplot2 packages.
 
 ## Installing and Launching R Packages
 
-- `readr` for importing csv into R.
-- `FunnelPlotR` for creating funnel plot.
-- `ggplot2` for creating funnel plot manually.
-- `knitr` for building static html table.
-- `plotly` for creating interactive funnel plot.
-
+-   `readr` for importing csv into R.
+-   `FunnelPlotR` for creating funnel plot.
+-   `ggplot2` for creating funnel plot manually.
+-   `knitr` for building static html table.
+-   `plotly` for creating interactive funnel plot.
 
 ```{r}
 pacman::p_load(tidyverse, FunnelPlotR, plotly, knitr)
 ```
-
 
 ## Importing Data
 
@@ -43,16 +40,14 @@ covid19 <- read_csv("data/COVID-19_DKI_Jakarta.csv") %>%
   mutate_if(is.character, as.factor)
 ```
 
-
 # FunnelPlotR methods
 
-- `limit`: plot limits (95 or 99).
-- `label_outliers`: to label outliers (true or false).
-- `Poisson_limits`: to add Poisson limits to the plot.
-- `OD_adjust`: to add overdispersed limits to the plot.
-- `xrange` and `yrange`: to specify the range to display for axes, acts like a zoom function.
-- Other aesthetic components such as graph title, axis labels etc.
-
+-   `limit`: plot limits (95 or 99).
+-   `label_outliers`: to label outliers (true or false).
+-   `Poisson_limits`: to add Poisson limits to the plot.
+-   `OD_adjust`: to add overdispersed limits to the plot.
+-   `xrange` and `yrange`: to specify the range to display for axes, acts like a zoom function.
+-   Other aesthetic components such as graph title, axis labels etc.
 
 ## FunnelPlotR methods: The basic plot
 
@@ -64,7 +59,6 @@ funnel_plot(
   group = `Sub-district`
 )
 ```
-
 
 ## FunnelPlotR methods: Makeover 1
 
@@ -79,7 +73,6 @@ funnel_plot(
   yrange = c(0, 0.05)   #<<
 )
 ```
-
 
 ## FunnelPlotR methods: Makeover 2
 
@@ -99,7 +92,6 @@ funnel_plot(
 )
 ```
 
-
 # Funnel Plot for Fair Visual Comparison: ggplot2 methods
 
 ## Computing the basic derived fields
@@ -115,7 +107,6 @@ df <- covid19 %>%
 fit.mean <- weighted.mean(df$rate, 1/df$rate.se^2)
 ```
 
-
 ## Calculate lower and upper limits for 95% and 99.9% CI
 
 ```{r}
@@ -127,7 +118,6 @@ number.ul999 <- fit.mean + 3.29 * sqrt((fit.mean*(1-fit.mean)) / (number.seq))
 dfCI <- data.frame(number.ll95, number.ul95, number.ll999, 
                    number.ul999, number.seq, fit.mean)
 ```
-
 
 ## Plotting a static funnel plot
 
@@ -177,7 +167,6 @@ p <- ggplot(df, aes(x = Positive, y = rate)) +
 p
 ```
 
-
 ## Interactive Funnel Plot: plotly + ggplot2
 
 ```{r}
@@ -187,5 +176,3 @@ fp_ggplotly <- ggplotly(p,
               "y"))
 fp_ggplotly
 ```
-
-
