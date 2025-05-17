@@ -1,45 +1,689 @@
 [
   {
-    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html",
-    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html",
-    "title": "Take-home_Ex01",
+    "objectID": "VAST_Challenge_2025/MC1_release/MC1.html",
+    "href": "VAST_Challenge_2025/MC1_release/MC1.html",
+    "title": "MC1",
     "section": "",
-    "text": "This Quarto document supports a data-driven article by a local online media company that aims to investigate Singapore’s demographic structure and distribution in 2024. The analysis uses official population statistics to highlight the top 28 planning areas (PAs) with the highest total resident population in a bar chart, followed by a diverging gender distribution define that clearly shows the male-to-female ratio in these locations. Furthermore, the report includes population pyramids for the top 24 most populated PAs, which illustrate age distribution patterns across sexes. These pyramids are especially useful for detecting places with aging populations, as evidenced by wider age bands at the upper age levels. In addition to supporting the media company’s upcoming article with clear, appealing visuals, the visualizations collectively offer a thorough overview of where people live, how the population is divided by gender, and which regions may experience demographic shifts related to aging. These are important insights that can guide public discourse and policymaking.\n\n\n\nIn order to prepare the data for precise analysis and visualization, this process involves cleaning the data by eliminating duplicates and missing values, recoding age values, and converting important variables to the proper formats.\n\n\nWe load the following R packages using the pacman::p_load() function:\n\ntidyverse – Core collection of R packages designed for data science\ndplyr – For data manipulation and transformation.\npatchwork – To combine multiple ggplot2 plots into a single layout.\nscales – For formatting axes and labels (e.g., commas, percentages).\nforcats – For working with categorical/factor variables.\n\n\npacman::p_load(dplyr, patchwork, tidyverse, scales, forcasts)\n\n\n\n\n\nsg_res &lt;- read.csv(\"data/respopagesex2024.csv\")\n\nThis is the description of the data:\n\n\n\n\n\n\n\n\nColumn Name\nDescription\nData Type\n\n\n\n\nPA\nPlanning Area (e.g., Tampines, Woodlands, etc.)\nCategorical\n\n\nAge\nAge group (e.g., “0”, “5”, …, “90+”, typically in 5-year bins)\nOrdinal (Factor or Integer)\n\n\nSex\nGender category: “Males” or “Females”\nCategorical\n\n\nPop\nPopulation count for the given PA, age group, and sex\nNumeric (Integer)\n\n\n\n\n\n\nThis section involved cleaning and formatting the dataset by removing duplicates and missing values, converting the “90_and_Over” age group to numeric, and converting key variables like age, sex, and planning area into appropriate data types for analysis.\n\n\n\nsg_res &lt;- sg_res %&gt;%\n  distinct()\n\n\n\n\n\nsg_res &lt;- sg_res %&gt;%\n  mutate(\n    Age = ifelse(Age == \"90_and_Over\", \"90\", Age),\n    Age = as.numeric(Age),\n    PA = as.factor(PA),\n    SZ = as.factor(SZ),\n    Sex = as.factor(Sex),\n    Time = as.integer(Time)\n  ) %&gt;%\n  drop_na()\n\n\n\n\n\n\n\n\nThis section visualizes the top 28 planning areas (PAs) in Singapore based on their total population. The first bar chart ranks these areas, revealing that Tampines, Bedok, and Sengkang are the most populous, each with over 265,000 residents. These areas are key residential hubs and likely experience high demand for infrastructure and services.\nThe second plot is a diverging bar chart that shows the gender distribution within each of these top 28 PAs. The proportions of males and females are nearly balanced across most regions, with slight variations. For example, Bukit Merah, Tanglin and Queenstown have a noticeably higher female percentage (around 53–54%), while areas like Choa Chu Kang and Woodlands show an exact or near-equal male-female split (50-50%).\nThese visualizations provide a clear demographic snapshot—highlighting not only which areas are most densely populated, but also offering insights into gender balance, which can influence local policies, healthcare planning, and community programs.\n\n\n\ntop28_pa_pop &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(TotalPop = sum(Pop), .groups = \"drop\") %&gt;%\n  arrange(desc(TotalPop)) %&gt;%\n  slice_head(n = 28)\n\ntotal_pop_by_pa &lt;- ggplot(top28_pa_pop, aes(x = TotalPop, y = fct_reorder(PA, TotalPop))) +\n  geom_col(fill = \"steelblue\") +\n  geom_text(aes(label = scales::comma(TotalPop)), hjust = -0.1, size = 3)+\n  labs(\n    title = \"Top 28 Planning Areas by Total Population\",\n    x = \"Total Population\",\n    y = \"Planning Area\"\n  ) +\n  theme_minimal()+\n  theme(axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        plot.title = element_text(size = 30))\n\n\n\n\n\npop_sex_dist &lt;- sg_res %&gt;%\n  filter(PA %in% top28_pa_pop$PA) %&gt;%\n  group_by(PA, Sex) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\") %&gt;%\n  group_by(PA) %&gt;%\n  mutate(\n    Total = sum(Pop),\n    Percent = Pop / Total,\n    Pop_signed = ifelse(Sex == \"Males\", -Pop, Pop),\n    Percent_label = paste0(round(Percent * 100), \"%\")\n  ) %&gt;%\n  ungroup()\n\npop_sex_dist$PA &lt;- factor(pop_sex_dist$PA, levels = top28_pa_pop$PA)\n\n\nsex_of_pop_by_pa &lt;- ggplot(pop_sex_dist, aes(x = Pop_signed, y = PA, fill = Sex)) +\n  geom_col(width = 0.6) +\n  geom_text(aes(label = Percent_label),\n            position = position_stack(vjust = 0.5),\n            size = 3.2, color = \"white\") +\n  scale_x_continuous(\n    labels = abs,\n    expand = expansion(mult = c(0.1, 0.1))\n  ) +\n  labs(\n    title = \"Gender Distribution in Top 28 Planning Areas\",\n    x = \"Population Count\",\n    y = \"Planning Area\"\n  ) +\n  theme_minimal() +\n  theme(axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        plot.title = element_text(size = 30))\n  scale_fill_manual(values = c(\"Males\" = \"#1f77b4\", \"Females\" = \"#ff7f0e\"))\n\n&lt;ggproto object: Class ScaleDiscrete, Scale, gg&gt;\n    aesthetics: fill\n    axis_order: function\n    break_info: function\n    break_positions: function\n    breaks: waiver\n    call: call\n    clone: function\n    dimension: function\n    drop: TRUE\n    expand: waiver\n    get_breaks: function\n    get_breaks_minor: function\n    get_labels: function\n    get_limits: function\n    get_transformation: function\n    guide: legend\n    is_discrete: function\n    is_empty: function\n    labels: waiver\n    limits: function\n    make_sec_title: function\n    make_title: function\n    map: function\n    map_df: function\n    n.breaks.cache: NULL\n    na.translate: TRUE\n    na.value: grey50\n    name: waiver\n    palette: function\n    palette.cache: NULL\n    position: left\n    range: environment\n    rescale: function\n    reset: function\n    train: function\n    train_df: function\n    transform: function\n    transform_df: function\n    super:  &lt;ggproto object: Class ScaleDiscrete, Scale, gg&gt;\n\n\n\n\n\n\ncombine_plots &lt;- total_pop_by_pa / plot_spacer() / sex_of_pop_by_pa +\n  plot_layout(heights = c(1, 0.1, 1))\ncombine_plots\n\n\n\n\n\n\n\n\n\n\n\n\nThis section presents population pyramids for the top 24 planning areas (PAs) in Singapore, offering a detailed view of age and gender distribution within each region. Each pyramid plots the male population on the left and female population on the right across single-year age groups, allowing for the identification of demographic trends such as youth-dominant or aging populations.\nFrom the visualizations, areas like Woodlands, Tampines, Sengkang, and Punggol show relatively balanced and broad bases, indicating a younger population with strong representation in the working-age and child demographics. In contrast, areas like Bukit Timah, Queenstown, and Bukit Merah display narrower bases and wider upper sections, and giving a signal of an aging population with a higher proportion of elderly residents.\nThese insights are crucial for urban planning, healthcare provisioning, and policymaking, as they highlight the varying age structures and potential future needs of each planning area.\n\n# Filter out the top 24 PA that has the highest population \ntop_24_pas &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(Total = sum(Pop), .groups = \"drop\") %&gt;%\n  slice_max(order_by = Total, n = 24) %&gt;%\n  pull(PA)\n\npyramid_data_top24 &lt;- sg_res %&gt;%\n  filter(PA %in% top_24_pas) %&gt;%\n  group_by(PA, Age, Sex) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\") %&gt;%\n  mutate(Pop = ifelse(Sex == \"Males\", -Pop, Pop))\n\n\nggplot(pyramid_data_top24, aes(x = Age, y = Pop, fill = Sex)) +\n  geom_bar(stat = \"identity\", width = 0.8) +\n  coord_flip() +\n  scale_y_continuous(labels = abs) +\n  facet_wrap(~ PA, scales = \"free_y\", ncol = 6) +  # 6 columns for layout\n  labs(title = \"Population Pyramids of Top 24 Planning Areas\",\n       x = \"Age Group\", y = \"Population\") +\n  theme_minimal(base_size = 9) +\n  theme(axis.title.x = element_text(size = 25),\n        axis.title.y = element_text(size = 25),\n        axis.text.y = element_text(size = 13),\n          axis.text.x = element_text(size = 13),\n        strip.text = element_text(size = 16, face = \"bold\"),\n        legend.title = element_text(size = 25),\n  legend.text = element_text(size = 20),\n        plot.title = element_text(size = 45)) +\n  scale_fill_manual(values = c(\"Males\" = \"skyblue\", \"Females\" = \"salmon\"))\n\n\n\n\n\n\n\n\n\n\n\n\nWith an emphasis on planning areas with the largest populations, this publication offers a thorough demographic estimate of Singapore’s resident population in 2024. The analysis uses systematic data preparation and effective visualization approaches to highlight the top 28 planning areas by total population and evaluate their gender distribution using diverging bar charts. Furthermore, the top 24 areas’ population pyramids provide information about the age distribution of each region, highlighting places with younger populations compared to those with aging populations. These visual aids are useful for influencing public discussions, urban planning, and policy formation; they are particularly useful for a local media article that aims to clarify Singapore’s changing demographics."
+    "text": "pacman::p_load(tidyverse, jsonlite,SmartEDA, tidygraph,ggraph)"
   },
   {
-    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#overview",
-    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#overview",
-    "title": "Take-home_Ex01",
-    "section": "",
-    "text": "This Quarto document supports a data-driven article by a local online media company that aims to investigate Singapore’s demographic structure and distribution in 2024. The analysis uses official population statistics to highlight the top 28 planning areas (PAs) with the highest total resident population in a bar chart, followed by a diverging gender distribution define that clearly shows the male-to-female ratio in these locations. Furthermore, the report includes population pyramids for the top 24 most populated PAs, which illustrate age distribution patterns across sexes. These pyramids are especially useful for detecting places with aging populations, as evidenced by wider age bands at the upper age levels. In addition to supporting the media company’s upcoming article with clear, appealing visuals, the visualizations collectively offer a thorough overview of where people live, how the population is divided by gender, and which regions may experience demographic shifts related to aging. These are important insights that can guide public discourse and policymaking."
+    "objectID": "VAST_Challenge_2025/MC1_release/MC1.html#extract-and-inspect",
+    "href": "VAST_Challenge_2025/MC1_release/MC1.html#extract-and-inspect",
+    "title": "MC1",
+    "section": "Extract and inspect",
+    "text": "Extract and inspect\n\nnodes_tbl &lt;- as_tibble(kg$nodes)\nedges_tbl &lt;- as_tibble(kg$links)"
   },
   {
-    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#data-preparation",
-    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#data-preparation",
-    "title": "Take-home_Ex01",
-    "section": "",
-    "text": "In order to prepare the data for precise analysis and visualization, this process involves cleaning the data by eliminating duplicates and missing values, recoding age values, and converting important variables to the proper formats.\n\n\nWe load the following R packages using the pacman::p_load() function:\n\ntidyverse – Core collection of R packages designed for data science\ndplyr – For data manipulation and transformation.\npatchwork – To combine multiple ggplot2 plots into a single layout.\nscales – For formatting axes and labels (e.g., commas, percentages).\nforcats – For working with categorical/factor variables.\n\n\npacman::p_load(dplyr, patchwork, tidyverse, scales, forcasts)\n\n\n\n\n\nsg_res &lt;- read.csv(\"data/respopagesex2024.csv\")\n\nThis is the description of the data:\n\n\n\n\n\n\n\n\nColumn Name\nDescription\nData Type\n\n\n\n\nPA\nPlanning Area (e.g., Tampines, Woodlands, etc.)\nCategorical\n\n\nAge\nAge group (e.g., “0”, “5”, …, “90+”, typically in 5-year bins)\nOrdinal (Factor or Integer)\n\n\nSex\nGender category: “Males” or “Females”\nCategorical\n\n\nPop\nPopulation count for the given PA, age group, and sex\nNumeric (Integer)\n\n\n\n\n\n\nThis section involved cleaning and formatting the dataset by removing duplicates and missing values, converting the “90_and_Over” age group to numeric, and converting key variables like age, sex, and planning area into appropriate data types for analysis.\n\n\n\nsg_res &lt;- sg_res %&gt;%\n  distinct()\n\n\n\n\n\nsg_res &lt;- sg_res %&gt;%\n  mutate(\n    Age = ifelse(Age == \"90_and_Over\", \"90\", Age),\n    Age = as.numeric(Age),\n    PA = as.factor(PA),\n    SZ = as.factor(SZ),\n    Sex = as.factor(Sex),\n    Time = as.integer(Time)\n  ) %&gt;%\n  drop_na()"
+    "objectID": "VAST_Challenge_2025/MC1_release/MC1.html#initial-eda",
+    "href": "VAST_Challenge_2025/MC1_release/MC1.html#initial-eda",
+    "title": "MC1",
+    "section": "Initial EDA",
+    "text": "Initial EDA\n\nggplot(data = edges_tbl,\n       aes(y = `Edge Type`)) +\n  geom_bar()\n\n\n\n\n\n\n\n\n\nggplot(data = nodes_tbl,\n       aes(y = `Node Type`)) +\n  geom_bar()"
   },
   {
-    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#visualization",
-    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#visualization",
-    "title": "Take-home_Ex01",
-    "section": "",
-    "text": "This section visualizes the top 28 planning areas (PAs) in Singapore based on their total population. The first bar chart ranks these areas, revealing that Tampines, Bedok, and Sengkang are the most populous, each with over 265,000 residents. These areas are key residential hubs and likely experience high demand for infrastructure and services.\nThe second plot is a diverging bar chart that shows the gender distribution within each of these top 28 PAs. The proportions of males and females are nearly balanced across most regions, with slight variations. For example, Bukit Merah, Tanglin and Queenstown have a noticeably higher female percentage (around 53–54%), while areas like Choa Chu Kang and Woodlands show an exact or near-equal male-female split (50-50%).\nThese visualizations provide a clear demographic snapshot—highlighting not only which areas are most densely populated, but also offering insights into gender balance, which can influence local policies, healthcare planning, and community programs.\n\n\n\ntop28_pa_pop &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(TotalPop = sum(Pop), .groups = \"drop\") %&gt;%\n  arrange(desc(TotalPop)) %&gt;%\n  slice_head(n = 28)\n\ntotal_pop_by_pa &lt;- ggplot(top28_pa_pop, aes(x = TotalPop, y = fct_reorder(PA, TotalPop))) +\n  geom_col(fill = \"steelblue\") +\n  geom_text(aes(label = scales::comma(TotalPop)), hjust = -0.1, size = 3)+\n  labs(\n    title = \"Top 28 Planning Areas by Total Population\",\n    x = \"Total Population\",\n    y = \"Planning Area\"\n  ) +\n  theme_minimal()+\n  theme(axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        plot.title = element_text(size = 30))\n\n\n\n\n\npop_sex_dist &lt;- sg_res %&gt;%\n  filter(PA %in% top28_pa_pop$PA) %&gt;%\n  group_by(PA, Sex) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\") %&gt;%\n  group_by(PA) %&gt;%\n  mutate(\n    Total = sum(Pop),\n    Percent = Pop / Total,\n    Pop_signed = ifelse(Sex == \"Males\", -Pop, Pop),\n    Percent_label = paste0(round(Percent * 100), \"%\")\n  ) %&gt;%\n  ungroup()\n\npop_sex_dist$PA &lt;- factor(pop_sex_dist$PA, levels = top28_pa_pop$PA)\n\n\nsex_of_pop_by_pa &lt;- ggplot(pop_sex_dist, aes(x = Pop_signed, y = PA, fill = Sex)) +\n  geom_col(width = 0.6) +\n  geom_text(aes(label = Percent_label),\n            position = position_stack(vjust = 0.5),\n            size = 3.2, color = \"white\") +\n  scale_x_continuous(\n    labels = abs,\n    expand = expansion(mult = c(0.1, 0.1))\n  ) +\n  labs(\n    title = \"Gender Distribution in Top 28 Planning Areas\",\n    x = \"Population Count\",\n    y = \"Planning Area\"\n  ) +\n  theme_minimal() +\n  theme(axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        plot.title = element_text(size = 30))\n  scale_fill_manual(values = c(\"Males\" = \"#1f77b4\", \"Females\" = \"#ff7f0e\"))\n\n&lt;ggproto object: Class ScaleDiscrete, Scale, gg&gt;\n    aesthetics: fill\n    axis_order: function\n    break_info: function\n    break_positions: function\n    breaks: waiver\n    call: call\n    clone: function\n    dimension: function\n    drop: TRUE\n    expand: waiver\n    get_breaks: function\n    get_breaks_minor: function\n    get_labels: function\n    get_limits: function\n    get_transformation: function\n    guide: legend\n    is_discrete: function\n    is_empty: function\n    labels: waiver\n    limits: function\n    make_sec_title: function\n    make_title: function\n    map: function\n    map_df: function\n    n.breaks.cache: NULL\n    na.translate: TRUE\n    na.value: grey50\n    name: waiver\n    palette: function\n    palette.cache: NULL\n    position: left\n    range: environment\n    rescale: function\n    reset: function\n    train: function\n    train_df: function\n    transform: function\n    transform_df: function\n    super:  &lt;ggproto object: Class ScaleDiscrete, Scale, gg&gt;\n\n\n\n\n\n\ncombine_plots &lt;- total_pop_by_pa / plot_spacer() / sex_of_pop_by_pa +\n  plot_layout(heights = c(1, 0.1, 1))\ncombine_plots\n\n\n\n\n\n\n\n\n\n\n\n\nThis section presents population pyramids for the top 24 planning areas (PAs) in Singapore, offering a detailed view of age and gender distribution within each region. Each pyramid plots the male population on the left and female population on the right across single-year age groups, allowing for the identification of demographic trends such as youth-dominant or aging populations.\nFrom the visualizations, areas like Woodlands, Tampines, Sengkang, and Punggol show relatively balanced and broad bases, indicating a younger population with strong representation in the working-age and child demographics. In contrast, areas like Bukit Timah, Queenstown, and Bukit Merah display narrower bases and wider upper sections, and giving a signal of an aging population with a higher proportion of elderly residents.\nThese insights are crucial for urban planning, healthcare provisioning, and policymaking, as they highlight the varying age structures and potential future needs of each planning area.\n\n# Filter out the top 24 PA that has the highest population \ntop_24_pas &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(Total = sum(Pop), .groups = \"drop\") %&gt;%\n  slice_max(order_by = Total, n = 24) %&gt;%\n  pull(PA)\n\npyramid_data_top24 &lt;- sg_res %&gt;%\n  filter(PA %in% top_24_pas) %&gt;%\n  group_by(PA, Age, Sex) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\") %&gt;%\n  mutate(Pop = ifelse(Sex == \"Males\", -Pop, Pop))\n\n\nggplot(pyramid_data_top24, aes(x = Age, y = Pop, fill = Sex)) +\n  geom_bar(stat = \"identity\", width = 0.8) +\n  coord_flip() +\n  scale_y_continuous(labels = abs) +\n  facet_wrap(~ PA, scales = \"free_y\", ncol = 6) +  # 6 columns for layout\n  labs(title = \"Population Pyramids of Top 24 Planning Areas\",\n       x = \"Age Group\", y = \"Population\") +\n  theme_minimal(base_size = 9) +\n  theme(axis.title.x = element_text(size = 25),\n        axis.title.y = element_text(size = 25),\n        axis.text.y = element_text(size = 13),\n          axis.text.x = element_text(size = 13),\n        strip.text = element_text(size = 16, face = \"bold\"),\n        legend.title = element_text(size = 25),\n  legend.text = element_text(size = 20),\n        plot.title = element_text(size = 45)) +\n  scale_fill_manual(values = c(\"Males\" = \"skyblue\", \"Females\" = \"salmon\"))"
+    "objectID": "VAST_Challenge_2025/MC1_release/MC1.html#creating-knowledge-graph",
+    "href": "VAST_Challenge_2025/MC1_release/MC1.html#creating-knowledge-graph",
+    "title": "MC1",
+    "section": "Creating Knowledge Graph",
+    "text": "Creating Knowledge Graph\n\nStep 1: Mapping form node id to row index\n\nid_map &lt;- tibble(id = nodes_tbl$id, \n                 index = seq_len(\n                   nrow(nodes_tbl)\n                 ))\n\n\n\nStep 2 : Map source and target IDs to row indices\n\nedges_tbl &lt;- edges_tbl %&gt;%\n  left_join(id_map, by = c(\"source\" = \"id\")) %&gt;%\n  rename(from = index) %&gt;%\n  left_join(id_map, by = c(\"target\" = \"id\")) %&gt;%\n  rename(to = index)\n\n\n\nStep 3: filter out any unmatched (invalid) edges\n\nedges_tbl &lt;- edges_tbl %&gt;%\n  filter(!is.na(from), !is.na(to))\n\n\n\nstep 4: Creating the graph\n\ngraph &lt;- tbl_graph(nodes = nodes_tbl,\n                   edges = edges_tbl,\n                   directed = kg$directed)"
   },
   {
-    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#summary",
-    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#summary",
-    "title": "Take-home_Ex01",
-    "section": "",
-    "text": "With an emphasis on planning areas with the largest populations, this publication offers a thorough demographic estimate of Singapore’s resident population in 2024. The analysis uses systematic data preparation and effective visualization approaches to highlight the top 28 planning areas by total population and evaluate their gender distribution using diverging bar charts. Furthermore, the top 24 areas’ population pyramids provide information about the age distribution of each region, highlighting places with younger populations compared to those with aging populations. These visual aids are useful for influencing public discussions, urban planning, and policy formation; they are particularly useful for a local media article that aims to clarify Singapore’s changing demographics."
+    "objectID": "VAST_Challenge_2025/MC1_release/MC1.html#visualising-the-knowledge-graph",
+    "href": "VAST_Challenge_2025/MC1_release/MC1.html#visualising-the-knowledge-graph",
+    "title": "MC1",
+    "section": "Visualising the Knowledge graph",
+    "text": "Visualising the Knowledge graph\n\nset.seed(1234)\n\n\nVisualising the whole Graph\n\nggraph(graph, layout = \"fr\") + \n  geom_edge_link(alpha = 0.3,\n                 colour = \"gray\") +\n  geom_node_point(aes(color = `Node Type`),\n                  size = 4) +\n  geom_node_text(aes(label = name),\n                 repel = TRUE,\n                 size = 2.5) +\n  theme_void()\n\n\nStep 1: Filter edges to only “Member of”\n\ngraph_memberof &lt;- graph %&gt;%\n  activate(edges) %&gt;%\n  filter(`Edge Type` == \"MemberOf\")\n\n\n\nStep 2: Extract only connected nodes (i.e., used in these edges)\n\nused_node_indices &lt;- graph_memberof %&gt;%\n  activate(edges) %&gt;%\n  as_tibble() %&gt;%\n  select(from, to)%&gt;%\n  unlist() %&gt;%\n  unique()\n\n\n\nStep 3: Keep only those nodes\n\ngraph_memberof &lt;- graph_memberof %&gt;%\n  activate(nodes) %&gt;%\n  mutate(row_id = row_number()) %&gt;%\n  filter(row_id %in% used_node_indices) %&gt;%\n  select(-row_id)\n\n\n\nPlot the sub-graph\n\nggraph(graph_memberof,\n       layout = \"fr\") + \n  geom_edge_link(alpha = 0.5,\n                 colour = \"gray\") +\n  geom_node_point(aes(colour = `Node Type`),\n                  size = 1) +\n  geom_node_text(aes(label = name),\n                 repel = TRUE,\n                 size = 2.5) +\n  theme_void()\n\nWarning: ggrepel: 789 unlabeled data points (too many overlaps). Consider\nincreasing max.overlaps"
   },
   {
-    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#original-visualization",
-    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#original-visualization",
-    "title": "Take-home_Ex01",
-    "section": "5 Original Visualization",
-    "text": "5 Original Visualization\n\n\n\n\n\n\nJustification\n\n\n\nI decided to criticize the original chart because it only shows how many older people live in each planning area, which isn’t very representative of the whole population. It’s helpful for identifying regions with a higher proportion of senior citizens, but it doesn’t show how the elderly population stacks up against other age groups, such as children or working adults. It’s challenging to completely comprehend the population structure and make appropriate plans for things like employment, education, and elder care without that background. By highlighting this, I would like to highlight the importance of displaying various age groups together in order to provide a clearer, more comprehensive view of the community.\n\n\nMy peer’s work: Link to my peer work\n\ntotal_area &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(total = sum(Pop), .groups = \"drop\")\n\nelderly &lt;- sg_res %&gt;%\n  filter(Age &gt;= 65, !is.na(PA), !is.na(Pop))\n\nelderly_area &lt;- elderly %&gt;%\n  group_by(PA) %&gt;%\n  summarise(elderly = sum(Pop), .groups = \"drop\")\n\naging_ratio &lt;- left_join(total_area, elderly_area, by = \"PA\") %&gt;%\n  filter(total &gt; 0) %&gt;%\n  mutate(elderly = replace_na(elderly, 0),\n         aging_percentage = elderly / total)\n\n\nggplot(aging_ratio, aes(x = reorder(PA, aging_percentage), \n                        y = aging_percentage)) +\n  geom_col(fill = \"lightpink\") +\n  coord_flip() +\n  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +\n  labs(\n    title = \"Proportion of Elderly (65+) by Planning Area\",\n    x = \"Planning Area\",\n    y = \"Elderly Proportion\"\n  ) +\n  theme_minimal(base_size = 12) +\n    theme(axis.text.y = element_text(size = 13),\n          axis.text.x = element_text(size = 13),\n    plot.title = element_text(size = 25, face = \"bold\",\n                              hjust =0.5),\n    plot.margin = margin(10, 20, 10, 10))\n\n\n\n\n\n\n\n\n\n5.1 Good Points of the Visualization\n\n\n\n\n\n\nGood Points of the Visualization\n\n\n\n\nClear Sorting for Comparison\n\nThe planning areas are sorted in descending order of elderly proportion, which helps the viewer quickly identify the areas with the highest elderly population share.\nSorting enhances readability and supports effective ranking-based insights.\n\nSimple and Clean Design\n\nThe chart uses a horizontal bar layout with clean axis labels and a minimal theme.\nThis layout makes it easy to read long planning area names and compare bar lengths visually.\n\nFocused Message\n\nThe title, “Proportion of Elderly (65+) by Planning Area,” is specific and directly tells the viewer what to focus on.\nThe single-variable focus avoids visual clutter and keeps the viewer’s attention on a key demographic issue.\n\n\n\n\n\n\n5.2 Areas for Further Improvement\n\n\n\n\n\n\nAreas for Further Improvement\n\n\n\n\nLack of Context from Other Age Groups\n\nThe chart shows only the elderly proportion, which may mislead viewers if other age groups are significant in total composition.\nThere’s no insight into whether the area also has many children or working adults — a stacked comparison could give more complete demographic context.\n\nMissing Data Labels\n\nThe chart does not show the actual percentage values on the bars, requiring viewers to estimate from the axis grid.\nAdding data labels (e.g., “23.5%”) improves precision and saves interpretation time.\n\nNarrow Insights\n\nThe chart focuses only on elderly population, omitting inter-generational demographic dynamics.\nIt tells us where elderly are concentrated, but not whether it’s due to lower children population or actual elderly concentration.\n\n\n\n\n\n\n5.3 Makeover Version of the Data Visualization\n\nsg_age_grouped &lt;- sg_res %&gt;%\n  mutate(age_group = case_when(\n    Age &gt;= 65 ~ \"Elderly (65+)\",\n    Age &gt;= 18 ~ \"Working Adults (18-64)\",\n    TRUE ~ \"Children (0-17)\"\n  ))\n\n\npop_by_group &lt;- sg_age_grouped %&gt;%\n  group_by(PA, age_group) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\")\n\n\npop_percent &lt;- pop_by_group %&gt;%\n  group_by(PA) %&gt;%\n  mutate(total = sum(Pop),\n         percent = Pop / total) %&gt;%\n  ungroup() %&gt;%\n  filter(total &gt; 0) \n\n\nelderly_percent &lt;- pop_percent %&gt;%\n  filter(age_group == \"Elderly (65+)\") %&gt;%\n  select(PA, elderly_percent = percent)\n\n\npop_percent &lt;- left_join(pop_percent, elderly_percent, by = \"PA\") %&gt;%\n  mutate(\n    PA = fct_reorder(PA, +elderly_percent),\n    percent_label = paste0(round(percent * 100, 1), \"%\")\n  )\n\npop_percent$age_group &lt;- factor(pop_percent$age_group,\n                                levels = c(\"Children (0-17)\", \"Working Adults (18-64)\", \"Elderly (65+)\"))\n\n\nggplot(pop_percent, aes(x = PA, y = percent, fill = age_group)) +\n  geom_col() +\n  geom_text(aes(label = percent_label),\n            position = position_stack(vjust = 0.5),\n            size = 5, color = \"black\") +\n  scale_y_continuous(labels = percent_format(accuracy = 1)) +\n  scale_fill_manual(values = c(\"Elderly (65+)\" = \"#b2df8a\",\n                               \"Working Adults (18-64)\" = \"#6baed6\",\n                               \"Children (0-17)\" = \"#a6cee3\")) +\n  coord_flip() +\n  labs(\n    title = \"Age Group Composition by Planning Area (Sorted by Elderly %)\",\n    x = \"Planning Area\",\n    y = \"Percentage\",\n    fill = \"Age Group\"\n  ) +\n  theme_minimal(base_size = 12) +\n  theme(axis.text.y = element_text(size = 15),\n          axis.text.x = element_text(size = 15),\n        axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        legend.title = element_text(size = 20),\n  legend.text = element_text(size = 15),\n    plot.title = element_text(size = 25, face = \"bold\",\n                              hjust =0.5),\n    plot.margin = margin(10, 20, 10, 10))\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nImprovements\n\n\n\n\nAdds Complete Age Context\n\nInstead of showing only elderly proportion, this stacked bar chart displays Children, Working Adults, and Elderly, giving a holistic view of age distribution across planning areas.\n\nSorts by Elderly Proportion\n\nPlanning areas are ordered by increasing elderly percentage, making it easy to visually compare which areas are “older” in terms of demographic weight.\n\nShows Data Labels\n\nEach bar segment includes a percentage label, improving accuracy and interpretability without requiring the viewer to estimate from the axis.\n\n\n\n\n\n\n\n\n\n\nAdvantages\n\n\n\n\nContextual Insight: You can immediately compare not just who has the most elderly, but how balanced or skewed each area’s population is across age groups.\nEffective Communication: Better typography and labels make the visualization suitable for reports or presentations to decision-makers."
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "ISSS608-VAA-Min",
+    "section": "",
+    "text": "Welcome to ISSS608 Visual Analytics and Application. In this website, you will find my coursework prepared for this course."
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html",
+    "title": "Hands-on Exercise 4.4",
+    "section": "",
+    "text": "plotting funnel plots by using funnelPlotR package,\nplotting static funnel plot by using ggplot2 package, and\nplotting interactive funnel plot by using both plotly R and ggplot2 packages.\n\n\n\n\n\nreadr for importing csv into R.\nFunnelPlotR for creating funnel plot.\nggplot2 for creating funnel plot manually.\nknitr for building static html table.\nplotly for creating interactive funnel plot.\n\n\npacman::p_load(tidyverse, FunnelPlotR, plotly, knitr)\n\n\n\n\n\ncovid19 &lt;- read_csv(\"data/COVID-19_DKI_Jakarta.csv\") %&gt;%\n  mutate_if(is.character, as.factor)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#overview",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#overview",
+    "title": "Hands-on Exercise 4.4",
+    "section": "",
+    "text": "plotting funnel plots by using funnelPlotR package,\nplotting static funnel plot by using ggplot2 package, and\nplotting interactive funnel plot by using both plotly R and ggplot2 packages."
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#installing-and-launching-r-packages",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#installing-and-launching-r-packages",
+    "title": "Hands-on Exercise 4.4",
+    "section": "",
+    "text": "readr for importing csv into R.\nFunnelPlotR for creating funnel plot.\nggplot2 for creating funnel plot manually.\nknitr for building static html table.\nplotly for creating interactive funnel plot.\n\n\npacman::p_load(tidyverse, FunnelPlotR, plotly, knitr)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#importing-data",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#importing-data",
+    "title": "Hands-on Exercise 4.4",
+    "section": "",
+    "text": "covid19 &lt;- read_csv(\"data/COVID-19_DKI_Jakarta.csv\") %&gt;%\n  mutate_if(is.character, as.factor)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-the-basic-plot",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-the-basic-plot",
+    "title": "Hands-on Exercise 4.4",
+    "section": "FunnelPlotR methods: The basic plot",
+    "text": "FunnelPlotR methods: The basic plot\n\nfunnel_plot(\n  .data = covid19,\n  numerator = Positive,\n  denominator = Death,\n  group = `Sub-district`\n)\n\n\n\n\n\n\n\n\nA funnel plot object with 267 points of which 0 are outliers. \nPlot is adjusted for overdispersion."
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-makeover-1",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-makeover-1",
+    "title": "Hands-on Exercise 4.4",
+    "section": "FunnelPlotR methods: Makeover 1",
+    "text": "FunnelPlotR methods: Makeover 1\n\nfunnel_plot(\n  .data = covid19,\n  numerator = Death,\n  denominator = Positive,\n  group = `Sub-district`,\n  data_type = \"PR\",     #&lt;&lt;\n  xrange = c(0, 6500),  #&lt;&lt;\n  yrange = c(0, 0.05)   #&lt;&lt;\n)\n\n\n\n\n\n\n\n\nA funnel plot object with 267 points of which 7 are outliers. \nPlot is adjusted for overdispersion."
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-makeover-2",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-makeover-2",
+    "title": "Hands-on Exercise 4.4",
+    "section": "FunnelPlotR methods: Makeover 2",
+    "text": "FunnelPlotR methods: Makeover 2\n\nfunnel_plot(\n  .data = covid19,\n  numerator = Death,\n  denominator = Positive,\n  group = `Sub-district`,\n  data_type = \"PR\",   \n  xrange = c(0, 6500),  \n  yrange = c(0, 0.05),\n  label = NA,\n  title = \"Cumulative COVID-19 Fatality Rate by Cumulative Total Number of COVID-19 Positive Cases\", #&lt;&lt;           \n  x_label = \"Cumulative COVID-19 Positive Cases\", #&lt;&lt;\n  y_label = \"Cumulative Fatality Rate\"  #&lt;&lt;\n)\n\n\n\n\n\n\n\n\nA funnel plot object with 267 points of which 7 are outliers. \nPlot is adjusted for overdispersion."
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#computing-the-basic-derived-fields",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#computing-the-basic-derived-fields",
+    "title": "Hands-on Exercise 4.4",
+    "section": "Computing the basic derived fields",
+    "text": "Computing the basic derived fields\n\ndf &lt;- covid19 %&gt;%\n  mutate(rate = Death / Positive) %&gt;%\n  mutate(rate.se = sqrt((rate*(1-rate)) / (Positive))) %&gt;%\n  filter(rate &gt; 0)\n\n\nfit.mean &lt;- weighted.mean(df$rate, 1/df$rate.se^2)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#calculate-lower-and-upper-limits-for-95-and-99.9-ci",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#calculate-lower-and-upper-limits-for-95-and-99.9-ci",
+    "title": "Hands-on Exercise 4.4",
+    "section": "Calculate lower and upper limits for 95% and 99.9% CI",
+    "text": "Calculate lower and upper limits for 95% and 99.9% CI\n\nnumber.seq &lt;- seq(1, max(df$Positive), 1)\nnumber.ll95 &lt;- fit.mean - 1.96 * sqrt((fit.mean*(1-fit.mean)) / (number.seq)) \nnumber.ul95 &lt;- fit.mean + 1.96 * sqrt((fit.mean*(1-fit.mean)) / (number.seq)) \nnumber.ll999 &lt;- fit.mean - 3.29 * sqrt((fit.mean*(1-fit.mean)) / (number.seq)) \nnumber.ul999 &lt;- fit.mean + 3.29 * sqrt((fit.mean*(1-fit.mean)) / (number.seq)) \ndfCI &lt;- data.frame(number.ll95, number.ul95, number.ll999, \n                   number.ul999, number.seq, fit.mean)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#plotting-a-static-funnel-plot",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#plotting-a-static-funnel-plot",
+    "title": "Hands-on Exercise 4.4",
+    "section": "Plotting a static funnel plot",
+    "text": "Plotting a static funnel plot\n\np &lt;- ggplot(df, aes(x = Positive, y = rate)) +\n  geom_point(aes(label=`Sub-district`), \n             alpha=0.4) +\n  geom_line(data = dfCI, \n            aes(x = number.seq, \n                y = number.ll95), \n            size = 0.4, \n            colour = \"grey40\", \n            linetype = \"dashed\") +\n  geom_line(data = dfCI, \n            aes(x = number.seq, \n                y = number.ul95), \n            size = 0.4, \n            colour = \"grey40\", \n            linetype = \"dashed\") +\n  geom_line(data = dfCI, \n            aes(x = number.seq, \n                y = number.ll999), \n            size = 0.4, \n            colour = \"grey40\") +\n  geom_line(data = dfCI, \n            aes(x = number.seq, \n                y = number.ul999), \n            size = 0.4, \n            colour = \"grey40\") +\n  geom_hline(data = dfCI, \n             aes(yintercept = fit.mean), \n             size = 0.4, \n             colour = \"grey40\") +\n  coord_cartesian(ylim=c(0,0.05)) +\n  annotate(\"text\", x = 1, y = -0.13, label = \"95%\", size = 3, colour = \"grey40\") + \n  annotate(\"text\", x = 4.5, y = -0.18, label = \"99%\", size = 3, colour = \"grey40\") + \n  ggtitle(\"Cumulative Fatality Rate by Cumulative Number of COVID-19 Cases\") +\n  xlab(\"Cumulative Number of COVID-19 Cases\") + \n  ylab(\"Cumulative Fatality Rate\") +\n  theme_light() +\n  theme(plot.title = element_text(size=12),\n        legend.position = c(0.91,0.85), \n        legend.title = element_text(size=7),\n        legend.text = element_text(size=7),\n        legend.background = element_rect(colour = \"grey60\", linetype = \"dotted\"),\n        legend.key.height = unit(0.3, \"cm\"))\np"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#interactive-funnel-plot-plotly-ggplot2",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#interactive-funnel-plot-plotly-ggplot2",
+    "title": "Hands-on Exercise 4.4",
+    "section": "Interactive Funnel Plot: plotly + ggplot2",
+    "text": "Interactive Funnel Plot: plotly + ggplot2\n\nfp_ggplotly &lt;- ggplotly(p,\n  tooltip = c(\"label\", \n              \"x\", \n              \"y\"))\nfp_ggplotly"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html",
+    "title": "Hand-on Exercise 4.2",
+    "section": "",
+    "text": "pacman::p_load(ggstatsplot, tidyverse)\n\n\n\n\n\nexam &lt;- read_csv(\"data/Exam_data.csv\")\n\n\n\n\n\nset.seed(1234)\n\ngghistostats(\n  data = exam,\n  x = ENGLISH,\n  type = \"bayes\",\n  test.value = 60,\n  xlab = \"English scores\"\n)\n\n\n\n\n\n\n\n\n\n\n\n\nggbetweenstats(\n  data = exam,\n  x = GENDER, \n  y = MATHS,\n  type = \"np\",\n  messages = FALSE\n)\n\n\n\n\n\n\n\n\n\n\n\n\nggbetweenstats(\n  data = exam,\n  x = RACE, \n  y = ENGLISH,\n  type = \"p\",\n  mean.ci = TRUE, \n  pairwise.comparisons = TRUE, \n  pairwise.display = \"s\",\n  p.adjust.method = \"fdr\",\n  messages = FALSE\n)\n\n\n\n\n\n\n\n\n\n\n\n\nggscatterstats(\n  data = exam,\n  x = MATHS,\n  y = ENGLISH,\n  marginal = FALSE,\n  )\n\n\n\n\n\n\n\n\n\n\n\n\nexam1 &lt;- exam %&gt;% \n  mutate(MATHS_bins = \n           cut(MATHS, \n               breaks = c(0,60,75,85,100))\n)\n\nIn this code chunk below ggbarstats() is used to build a visual for Significant Test of Association\n\nggbarstats(exam1, \n           x = MATHS_bins, \n           y = GENDER)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#installing-and-launching-r-packages",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#installing-and-launching-r-packages",
+    "title": "Hand-on Exercise 4.2",
+    "section": "",
+    "text": "pacman::p_load(ggstatsplot, tidyverse)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#importing-data",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#importing-data",
+    "title": "Hand-on Exercise 4.2",
+    "section": "",
+    "text": "exam &lt;- read_csv(\"data/Exam_data.csv\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#one-sample-test-gghistostats-method",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#one-sample-test-gghistostats-method",
+    "title": "Hand-on Exercise 4.2",
+    "section": "",
+    "text": "set.seed(1234)\n\ngghistostats(\n  data = exam,\n  x = ENGLISH,\n  type = \"bayes\",\n  test.value = 60,\n  xlab = \"English scores\"\n)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#two-sample-mean-test-ggbetweenstats",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#two-sample-mean-test-ggbetweenstats",
+    "title": "Hand-on Exercise 4.2",
+    "section": "",
+    "text": "ggbetweenstats(\n  data = exam,\n  x = GENDER, \n  y = MATHS,\n  type = \"np\",\n  messages = FALSE\n)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#oneway-anova-test-ggbetweenstats-method",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#oneway-anova-test-ggbetweenstats-method",
+    "title": "Hand-on Exercise 4.2",
+    "section": "",
+    "text": "ggbetweenstats(\n  data = exam,\n  x = RACE, \n  y = ENGLISH,\n  type = \"p\",\n  mean.ci = TRUE, \n  pairwise.comparisons = TRUE, \n  pairwise.display = \"s\",\n  p.adjust.method = \"fdr\",\n  messages = FALSE\n)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#significant-test-of-correlation-ggscatterstats",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#significant-test-of-correlation-ggscatterstats",
+    "title": "Hand-on Exercise 4.2",
+    "section": "",
+    "text": "ggscatterstats(\n  data = exam,\n  x = MATHS,\n  y = ENGLISH,\n  marginal = FALSE,\n  )"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#significant-test-of-association-depedence-ggbarstats-methods",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#significant-test-of-association-depedence-ggbarstats-methods",
+    "title": "Hand-on Exercise 4.2",
+    "section": "",
+    "text": "exam1 &lt;- exam %&gt;% \n  mutate(MATHS_bins = \n           cut(MATHS, \n               breaks = c(0,60,75,85,100))\n)\n\nIn this code chunk below ggbarstats() is used to build a visual for Significant Test of Association\n\nggbarstats(exam1, \n           x = MATHS_bins, \n           y = GENDER)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html",
+    "title": "Hands-on Exercise 3.2",
+    "section": "",
+    "text": "plotly is the R library for plotting interactive statistical graphs.\ngganimate is a ggplot extension for creating animated stastical graphs.\ngifski converts video frames to GIF animations using pngquant’s fancy features for efficient cross-frame palettes and temporal dithering. It produces animated GIFs that use thousands of colors per frame.\ngapminder is an excerpt of the data available at Gapminder.org. We just want to use its country_colors scheme."
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-a-static-population-bubble-plot",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-a-static-population-bubble-plot",
+    "title": "Hands-on Exercise 3.2",
+    "section": "Building a static population bubble plot",
+    "text": "Building a static population bubble plot\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young')"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-the-animated-bubble-plot",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-the-animated-bubble-plot",
+    "title": "Hands-on Exercise 3.2",
+    "section": "Building the animated bubble plot",
+    "text": "Building the animated bubble plot\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young') +\n  transition_time(Year) +\n  ease_aes('linear')\n\n\n\n\n\n\n\n\n\nUsing other gganimate\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young') +\n  transition_time(Year) +\nview_follow(fixed_x = TRUE, fixed_y = TRUE) +\nshadow_trail(0.1) +\nenter_grow() +\nexit_shrink() +\nease_aes(\"sine-in-out\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-ggplotly-method",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-ggplotly-method",
+    "title": "Hands-on Exercise 3.2",
+    "section": "Building an animated bubble plot: ggplotly() method",
+    "text": "Building an animated bubble plot: ggplotly() method\n\ngg &lt;- ggplot(globalPop, \n       aes(x = Old,y = Young, size = Population, colour = Country)) +\n  geom_point(aes(size = Population, frame = Year), alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(x = '% Aged', y = '% Young')\n\nggplotly(gg)\n\n\n\n\n\n\ngg &lt;- ggplot(globalPop, \n       aes(x = Old,y = Young, size = Population, colour = Country)) +\n  geom_point(aes(size = Population, frame = Year), alpha = 0.7) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(x = '% Aged', y = '% Young') + \n  theme(legend.position = 'none')\n\nggplotly(gg)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-plot_ly-method",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-plot_ly-method",
+    "title": "Hands-on Exercise 3.2",
+    "section": "Building an animated bubble plot: plot_ly() method",
+    "text": "Building an animated bubble plot: plot_ly() method\n\nbp &lt;- globalPop %&gt;%\n  plot_ly(x = ~Old, y = ~Young, size = ~Population, color = ~Continent, sizes = c(2, 100), frame = ~Year, text = ~Country, hoverinfo = \"text\", type = 'scatter', mode = 'markers') %&gt;%\n  \n  layout(showlegend = FALSE)\nbp"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
+    "title": "Hands-on Exercise 2",
+    "section": "",
+    "text": "pacman::p_load(ggrepel, patchwork, ggthemes, hrbrthemes, tidyverse)\n\n\n\n\nexam_data &lt;- read.csv(\"Exam_data.csv\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
+    "title": "Hands-on Exercise 2",
+    "section": "",
+    "text": "exam_data &lt;- read.csv(\"Exam_data.csv\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
+    "title": "Hands-on Exercise 2",
+    "section": "Working without ggrepel",
+    "text": "Working without ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label(aes(label = ID), hjust = .5, vjust = -.5) + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
+    "title": "Hands-on Exercise 2",
+    "section": "Working with ggrepel",
+    "text": "Working with ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label_repel(aes(label = ID), fontface = \"bold\") + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
+    "title": "Hands-on Exercise 2",
+    "section": "Using ggplot2 themes",
+    "text": "Using ggplot2 themes\n\nggplot(data=exam_data, aes(x=MATHS)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill = \"grey90\") + theme_linedraw() + ggtitle(\"Distribution of Maths scores\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
+    "title": "Hands-on Exercise 2",
+    "section": "Working with ggtheme package",
+    "text": "Working with ggtheme package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_solarized()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
+    "title": "Hands-on Exercise 2",
+    "section": "Working with hrbthemes package",
+    "text": "Working with hrbthemes package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter()\n\n\n\n\n\n\n\n\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter(axis_title_size = 18, base_size = 15, grid = \"Y\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
+    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
+    "title": "Hands-on Exercise 2",
+    "section": "Creating Composite Graphics: pathwork methods",
+    "text": "Creating Composite Graphics: pathwork methods\n\nTow-Column layout can use Plus Sign +\nParenthesis () are used to create subplot group\nTwo-Row layout can use Devision Sign /\n\n\nCombining two ggplot2 graphs\n\np1 + p2\n\n\n\n\n\n\n\n\n\n\nCombining three ggplot2 graphs\n“|” is to place the plots beside each other\n\n(p1 / p2) | p3\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure with tag\n\n((p1 / p2) | p3) + plot_annotation(tag_levels =  'I')\n\n\n\n\n\n\n\n\n\n\nCreating figure with insert\n\np3 + inset_element(p2, left = 0.02, bottom = 0.7, right = 0.5, top = 1)\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure by using patchwork and ggtheme\n\npatchwork &lt;- (p1 / p2) | p3 \npatchwork & theme_economist()"
+  },
+  {
+    "objectID": "about.html",
+    "href": "about.html",
+    "title": "About",
+    "section": "",
+    "text": "About this site\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html",
+    "title": "Hands-on Exercise 1",
+    "section": "",
+    "text": "The code chunk below use p_load() of pacman package to check if tidyverse packages are installed in the computer. If they are, then they will be launched into R.\n\npacman::p_load(tidyverse)\n\n\n\n\n\nexam_data &lt;- read_csv(\"data/Exam_data.csv\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#install-and-launching-r-packages",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#install-and-launching-r-packages",
+    "title": "Hands-on Exercise 1",
+    "section": "",
+    "text": "The code chunk below use p_load() of pacman package to check if tidyverse packages are installed in the computer. If they are, then they will be launched into R.\n\npacman::p_load(tidyverse)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#importing-the-data",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#importing-the-data",
+    "title": "Hands-on Exercise 1",
+    "section": "",
+    "text": "exam_data &lt;- read_csv(\"data/Exam_data.csv\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#essential-grammatical-elements-in-ggplot2",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#essential-grammatical-elements-in-ggplot2",
+    "title": "Hands-on Exercise 1",
+    "section": "Essential Grammatical Elements in ggplot2:",
+    "text": "Essential Grammatical Elements in ggplot2:\n\nggplot(data = exam_data)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#essential-grammatical-elements-in-ggplot2-1",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#essential-grammatical-elements-in-ggplot2-1",
+    "title": "Hands-on Exercise 1",
+    "section": "Essential Grammatical Elements in ggplot2",
+    "text": "Essential Grammatical Elements in ggplot2\n\nggplot(data=exam_data, aes(x=MATHS))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_bar",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_bar",
+    "title": "Hands-on Exercise 1",
+    "section": "Geometric Objects: geom_bar",
+    "text": "Geometric Objects: geom_bar\n\nggplot(data=exam_data, aes(x=CLASS)) + geom_bar()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_dotplot",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_dotplot",
+    "title": "Hands-on Exercise 1",
+    "section": "Geometric Objects: geom_dotplot",
+    "text": "Geometric Objects: geom_dotplot\n\nggplot(data=exam_data, \n       aes(x = MATHS)) +\n  geom_dotplot(dotsize = 0.5) + scale_y_continuous(NULL, breaks = NULL)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_histogram",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_histogram",
+    "title": "Hands-on Exercise 1",
+    "section": "Geometric Objects: geom_histogram()",
+    "text": "Geometric Objects: geom_histogram()\n\nggplot(data=exam_data, \n       aes(x = MATHS)) +\n  geom_histogram()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#modifying-a-geometric-object-by-changing-geom",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#modifying-a-geometric-object-by-changing-geom",
+    "title": "Hands-on Exercise 1",
+    "section": "Modifying a geometric object by changing geom()",
+    "text": "Modifying a geometric object by changing geom()\n\nggplot(data=exam_data, \n       aes(x= MATHS)) +\n  geom_histogram(bins=20,            \n                 color=\"black\",      \n                 fill=\"light cyan\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#modifying-a-geometric-object-by-changing-aes",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#modifying-a-geometric-object-by-changing-aes",
+    "title": "Hands-on Exercise 1",
+    "section": "Modifying a geometric object by changing aes()",
+    "text": "Modifying a geometric object by changing aes()\n\nggplot(data=exam_data, \n       aes(x= MATHS, \n           fill = RACE)) +\n  geom_histogram(bins=20, \n                 color=\"grey30\") + scale_fill_manual(values = c(\"Chinese\" = \"red\", \n                               \"Malay\" = \"skyblue\", \n                               \"Indian\" = \"lightgreen\", \n                               \"Others\" = \"purple\"))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom-density",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom-density",
+    "title": "Hands-on Exercise 1",
+    "section": "Geometric Objects: geom-density()",
+    "text": "Geometric Objects: geom-density()\n\nggplot(data=exam_data, \n       aes(x = ENGLISH)) +\n  geom_density()           \n\n\n\n\n\n\n\n\n\nggplot(data=exam_data, \n       aes(x = ENGLISH, \n           colour = GENDER)) +\n  geom_density()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_boxplot",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_boxplot",
+    "title": "Hands-on Exercise 1",
+    "section": "Geometric Objects: geom_boxplot",
+    "text": "Geometric Objects: geom_boxplot\n\nggplot(data=exam_data, \n       aes(y = MATHS,       \n           x= GENDER)) +    \n  geom_boxplot()            \n\n\n\n\n\n\n\n\n\nggplot(data=exam_data, \n       aes(y = MATHS, \n           x= GENDER)) +\n  geom_boxplot(notch=TRUE)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_violin",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_violin",
+    "title": "Hands-on Exercise 1",
+    "section": "Geometric Objects: geom_violin",
+    "text": "Geometric Objects: geom_violin\n\nggplot(data=exam_data, \n       aes(y = ENGLISH, \n           x= RACE)) +\n  geom_violin()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_point",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_point",
+    "title": "Hands-on Exercise 1",
+    "section": "Geometric Objects: geom_point()",
+    "text": "Geometric Objects: geom_point()\n\nggplot(data=exam_data, \n       aes(x= MATHS, \n           y= SCIENCE)) +\n  geom_point()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geom-objects-can-be-combined",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geom-objects-can-be-combined",
+    "title": "Hands-on Exercise 1",
+    "section": "geom objects can be combined",
+    "text": "geom objects can be combined\n\nggplot(data=exam_data, \n       aes(y = MATHS, \n           x= RACE)) +\n  geom_boxplot() +                    \n  geom_point(position=\"jitter\", \n             size = 0.5)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-stat---the-stat_summary-method",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-stat---the-stat_summary-method",
+    "title": "Hands-on Exercise 1",
+    "section": "Working with stat() - the stat_summary() method",
+    "text": "Working with stat() - the stat_summary() method\n\nggplot(data=exam_data, \n       aes(y = MATHS, x= GENDER)) +\n  geom_boxplot() +\n  stat_summary(geom = \"point\",      \n               fun = \"mean\",        \n               colour =\"red\",       \n               size=4)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-stat---the-geom-method",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-stat---the-geom-method",
+    "title": "Hands-on Exercise 1",
+    "section": "Working with stat - the geom() method",
+    "text": "Working with stat - the geom() method\n\nggplot(data=exam_data, \n       aes(y = MATHS, x= GENDER)) +\n  geom_boxplot() +\n  geom_point(stat=\"summary\",        \n             fun=\"mean\",           \n             colour=\"red\",          \n             size=4)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#adding-a-best-fit-curve-on-a-scatterplot",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#adding-a-best-fit-curve-on-a-scatterplot",
+    "title": "Hands-on Exercise 1",
+    "section": "Adding a best fit curve on a scatterplot",
+    "text": "Adding a best fit curve on a scatterplot\n\nggplot(data=exam_data, \n       aes(x= MATHS, y=ENGLISH)) +\n  geom_point() +\n  geom_smooth(method = lm, linewidth=0.5)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-facet_wrap",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-facet_wrap",
+    "title": "Hands-on Exercise 1",
+    "section": "Working with facet_wrap()",
+    "text": "Working with facet_wrap()\n\nggplot(data=exam_data, aes(x=ENGLISH)) + geom_histogram(bins = 20) + facet_wrap(~ CLASS)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#facet_grid-function",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#facet_grid-function",
+    "title": "Hands-on Exercise 1",
+    "section": "facet_grid() function",
+    "text": "facet_grid() function\n\nggplot(data=exam_data, \n       aes(x= MATHS)) +\n  geom_histogram(bins=20) +\n    facet_grid(~ CLASS)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-coordinate",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-coordinate",
+    "title": "Hands-on Exercise 1",
+    "section": "Working with Coordinate",
+    "text": "Working with Coordinate\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() + coord_flip()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#changing-the-y--and-x-axis-range",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#changing-the-y--and-x-axis-range",
+    "title": "Hands-on Exercise 1",
+    "section": "Changing the y- and x-axis range",
+    "text": "Changing the y- and x-axis range\n\nggplot(data=exam_data, \n       aes(x= MATHS, y=ENGLISH)) +\n  geom_point() +\n  geom_smooth(method=lm, \n              size=0.5) +  \n  coord_cartesian(xlim=c(0,100),\n                  ylim=c(0,100))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-theme",
+    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-theme",
+    "title": "Hands-on Exercise 1",
+    "section": "Working with theme",
+    "text": "Working with theme\nUsing theme_classic()\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_classic()\n\n\n\n\n\n\n\n\nUsing theme_minimal()\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_minimal()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html",
+    "title": "Hands-on Exercise 3.1",
+    "section": "",
+    "text": "ggiraph for making ‘ggplot’ graphics interactive.\nplotly R library for plotting interactive statistical graphs.\nDT provides R interface to the JavaScript library. DataTables that create interactive table on html page.\npatchwork for combining multiple ggplot2 graphs into one figure."
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#tooltip-effect-with-tooltip-aesthetics",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#tooltip-effect-with-tooltip-aesthetics",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Tooltip effect with tooltip aesthetics",
+    "text": "Tooltip effect with tooltip aesthetics\n\np &lt;- ggplot(data = exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive(aes(tooltip = ID), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 6,\n  height_svg = 6*0.618\n)\n\n\n\n\n\n\np &lt;- ggplot(data = exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive(aes(tooltip = ID, data_id = ID), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 6,\n  height_svg = 6*0.618\n)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-multiple-information-on-tooltip",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-multiple-information-on-tooltip",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Displaying Multiple Information on tooltip",
+    "text": "Displaying Multiple Information on tooltip\n\nexam_data$tooltip &lt;- paste0(     \n  \"Name = \", exam_data$ID,   \"\\n Class = \", exam_data$CLASS, \"\\n Race = \", exam_data$RACE) \n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(tooltip = exam_data$tooltip), \n    stackgroups = TRUE,\n    binwidth = 1,\n    method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 8,\n  height_svg = 8*0.618\n)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#customising-tooltip-style",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#customising-tooltip-style",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Customising Tooltip style",
+    "text": "Customising Tooltip style\n\ntooltip_css &lt;- \"background-color:lightblue; #&lt;&lt;\nfont-style:bold; color:black;\" #&lt;&lt;\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(tooltip = ID), stackgroups = TRUE,  binwidth = 1, method = \"histodot\") +               scale_y_continuous(NULL, breaks = NULL)\ngirafe(      \n  ggobj = p,   \n  width_svg = 6,  \n  height_svg = 6*0.618,\n  options = list(    #&lt;&lt;\n    opts_tooltip(    #&lt;&lt;\n      css = tooltip_css)) #&lt;&lt;\n)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-statistics-on-tooltip",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-statistics-on-tooltip",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Displaying statistics on tooltip",
+    "text": "Displaying statistics on tooltip\n\ntooltip &lt;- function(y, ymax, accuracy = .01) {\n  mean &lt;- scales::number(y, accuracy = accuracy)\n  sem &lt;- scales::number(ymax - y, accuracy = accuracy)\n  paste(\"Mean maths scores:\", mean, \"+/-\", sem)\n}\n\ngg_point &lt;- ggplot(data=exam_data, aes(x = RACE)) +\n  stat_summary(aes(y = MATHS, tooltip = after_stat( tooltip(y, ymax))),  \n    fun.data = \"mean_se\", \n    geom = GeomInteractiveCol, fill = \"light green\") +\n  stat_summary(aes(y = MATHS), fun.data = mean_se, geom = \"errorbar\", width = 0.2, size = 0.2)\n\ngirafe(ggobj = gg_point,\n       width_svg = 8,\n       height_svg = 8*0.618)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#hover-effect-with-data_id-aesthetic",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#hover-effect-with-data_id-aesthetic",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Hover effect with data_id aesthetic",
+    "text": "Hover effect with data_id aesthetic\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618)\n\n\n\n\n\n\nStyling hover effect\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618,\n  options = list(\n    opts_hover(css = \"fill: red;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#combining-tooltip-and-hover-effect",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#combining-tooltip-and-hover-effect",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Combining tooltip and hover effect",
+    "text": "Combining tooltip and hover effect\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS, fill = RACE)) +\n  geom_dotplot_interactive( aes(tooltip = RACE, data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618,\n  options = list(\n    opts_hover(css = \"stroke: black;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#click-effect-with-onclick",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#click-effect-with-onclick",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Click effect with onclick",
+    "text": "Click effect with onclick\n\nexam_data$onclick &lt;- sprintf(\"window.open(\\\"%s%s\\\")\", \n                             \"https://www.moe.gov.sg/schoolfinder?journey=Primary%20school\", \n   as.character(exam_data$ID))\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(onclick = onclick), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggiraph",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggiraph",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Coordinated Multiple Views with ggiraph",
+    "text": "Coordinated Multiple Views with ggiraph\n\np1 &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\n\np2 &lt;- ggplot(data=exam_data, aes(x = ENGLISH)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\n\n\ngirafe(                   \n  code = print(p1 + p2),\n  width_svg = 6,        \n  height_svg = 3,\n  options = list(\n    opts_hover(css = \"fill: red;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-plot_ly",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-plot_ly",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Using plot_ly()",
+    "text": "Using plot_ly()\n\nplot_ly(data = exam_data, \n             x = ~MATHS, \n             y = ~ENGLISH,\n            color = ~RACE)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-ggplotly",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-ggplotly",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Using ggplotly()",
+    "text": "Using ggplotly()\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS, y = ENGLISH)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100),ylim=c(0,100))\nggplotly(p)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggplotly",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggplotly",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Coordinated Multiple Views with ggplotly()",
+    "text": "Coordinated Multiple Views with ggplotly()\n\nd &lt;- highlight_key(exam_data)\np1 &lt;- ggplot(data=d, \n            aes(x = MATHS, y = ENGLISH)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\np2 &lt;- ggplot(data=d, \n            aes(x = MATHS, y = SCIENCE)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\nsubplot(ggplotly(p1),\n        ggplotly(p2))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#dt-package",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#dt-package",
+    "title": "Hands-on Exercise 3.1",
+    "section": "DT package",
+    "text": "DT package\n\nDT::datatable(exam_data, class= \"compact\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#linked-brushing-crosstalk-method",
+    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#linked-brushing-crosstalk-method",
+    "title": "Hands-on Exercise 3.1",
+    "section": "Linked brushing: crosstalk method",
+    "text": "Linked brushing: crosstalk method\n\nd &lt;- highlight_key(exam_data) \np &lt;- ggplot(d, aes(ENGLISH, MATHS)) + \n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\ngg &lt;- highlight(ggplotly(p),\"plotly_selected\")  \n\ncrosstalk::bscols(gg, DT::datatable(d),widths = 5)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html",
+    "title": "Hands-on Exercise 4.1",
+    "section": "",
+    "text": "pacman::p_load(ggdist, ggridges, ggthemes, colorspace, tidyverse)\n\n\n\n\n\nexam &lt;- read_csv(\"data/Exam_data.csv\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#installing-and-loading-packages",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#installing-and-loading-packages",
+    "title": "Hands-on Exercise 4.1",
+    "section": "",
+    "text": "pacman::p_load(ggdist, ggridges, ggthemes, colorspace, tidyverse)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#importing-data",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#importing-data",
+    "title": "Hands-on Exercise 4.1",
+    "section": "",
+    "text": "exam &lt;- read_csv(\"data/Exam_data.csv\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#varying-fill-colors-along-the-x-axis",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#varying-fill-colors-along-the-x-axis",
+    "title": "Hands-on Exercise 4.1",
+    "section": "Varying fill colors along the x axis",
+    "text": "Varying fill colors along the x axis\n\nggplot(exam, \n       aes(x = ENGLISH, \n           y = CLASS,\n           fill = stat(x))) +\n  geom_density_ridges_gradient(\n    scale = 3,\n    rel_min_height = 0.01) +\n  scale_fill_viridis_c(name = \"Temp. [F]\",\n                       option = \"C\") +\n  scale_x_continuous(\n    name = \"English grades\",\n    expand = c(0, 0)\n  ) +\n  scale_y_discrete(name = NULL, expand = expansion(add = c(0.2, 2.6))) +\n  theme_ridges()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#mapping-the-probabilities-directly-onto-colour",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#mapping-the-probabilities-directly-onto-colour",
+    "title": "Hands-on Exercise 4.1",
+    "section": "Mapping the probabilities directly onto colour",
+    "text": "Mapping the probabilities directly onto colour\n\nggplot(exam,\n       aes(x = ENGLISH, \n           y = CLASS, \n           fill = 0.5 - abs(0.5-stat(ecdf)))) +\n  stat_density_ridges(geom = \"density_ridges_gradient\", \n                      calc_ecdf = TRUE) +\n  scale_fill_viridis_c(name = \"Tail probability\",\n                       direction = -1) +\n  theme_ridges()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#ridgeline-plots-with-quantile-lines",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#ridgeline-plots-with-quantile-lines",
+    "title": "Hands-on Exercise 4.1",
+    "section": "Ridgeline plots with quantile lines",
+    "text": "Ridgeline plots with quantile lines\n\nggplot(exam,\n       aes(x = ENGLISH, \n           y = CLASS, \n           fill = factor(stat(quantile))\n           )) +\n  stat_density_ridges(\n    geom = \"density_ridges_gradient\",\n    calc_ecdf = TRUE, \n    quantiles = 4,\n    quantile_lines = TRUE) +\n  scale_fill_viridis_d(name = \"Quartiles\") +\n  theme_ridges()\n\n\n\n\n\n\n\n\n\nggplot(exam,\n       aes(x = ENGLISH, \n           y = CLASS, \n           fill = factor(stat(quantile))\n           )) +\n  stat_density_ridges(\n    geom = \"density_ridges_gradient\",\n    calc_ecdf = TRUE, \n    quantiles = c(0.025, 0.975)\n    ) +\n  scale_fill_manual(\n    name = \"Probability\",\n    values = c(\"#FF0000A0\", \"#A0A0A0A0\", \"#0000FFA0\"),\n    labels = c(\"(0, 0.025]\", \"(0.025, 0.975]\", \"(0.975, 1]\")\n  ) +\n  theme_ridges()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#plotting-a-half-eye-graph",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#plotting-a-half-eye-graph",
+    "title": "Hands-on Exercise 4.1",
+    "section": "Plotting a Half Eye graph",
+    "text": "Plotting a Half Eye graph\n\nggplot(exam, \n       aes(x = RACE, \n           y = ENGLISH)) +\n  stat_halfeye(adjust = 0.5,\n               justification = -0.2,\n               .width = 0,\n               point_colour = NA)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#adding-the-boxplot-with-geom_boxplot",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#adding-the-boxplot-with-geom_boxplot",
+    "title": "Hands-on Exercise 4.1",
+    "section": "Adding the boxplot with geom_boxplot()",
+    "text": "Adding the boxplot with geom_boxplot()\nAdd the second geometry layer using geom_boxplot() of ggplot2. This produces a narrow boxplot. We reduce the width and adjust the opacity.\n\nggplot(exam, \n       aes(x = RACE, \n           y = ENGLISH)) +\n  stat_halfeye(adjust = 0.5,\n               justification = -0.2,\n               .width = 0,\n               point_colour = NA) +\n  geom_boxplot(width = .20,\n               outlier.shape = NA)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#adding-the-dot-plots-with-stat_dots",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#adding-the-dot-plots-with-stat_dots",
+    "title": "Hands-on Exercise 4.1",
+    "section": "Adding the Dot Plots with stat_dots()",
+    "text": "Adding the Dot Plots with stat_dots()\nstat_dots() of ggdist package. This produces a half-dotplot, which is similar to a histogram that indicates the number of samples (number of dots) in each bin.\n\nggplot(exam, \n       aes(x = RACE, \n           y = ENGLISH)) +\n  stat_halfeye(adjust = 0.5,\n               justification = -0.2,\n               .width = 0,\n               point_colour = NA) +\n  geom_boxplot(width = .20,\n               outlier.shape = NA) +\n  stat_dots(side = \"left\", \n            justification = 1.2, \n            binwidth = .5,\n            dotsize = 2)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#final-touch-of-the-plot",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#final-touch-of-the-plot",
+    "title": "Hands-on Exercise 4.1",
+    "section": "Final touch of the plot",
+    "text": "Final touch of the plot\n\nggplot(exam, \n       aes(x = RACE, \n           y = ENGLISH)) +\n  stat_halfeye(adjust = 0.5,\n               justification = -0.2,\n               .width = 0,\n               point_colour = NA) +\n  geom_boxplot(width = .20,\n               outlier.shape = NA) +\n  stat_dots(side = \"left\", \n            justification = 1.2, \n            binwidth = .5,\n            dotsize = 1.5) +\n  coord_flip() +\n  theme_economist()"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html",
+    "title": "Hands-on Exercise 4.3",
+    "section": "",
+    "text": "plotly for creating interactive plot,\ngganimate for creating animation plot,\nDT for displaying interactive html table,\ncrosstalk for for implementing cross-widget interactions (currently, linked brushing and filtering), and\nggdist for visualising distribution and uncertainty.\n\n\npacman::p_load(plotly, crosstalk, DT, ggdist, ggridges, colorspace, gganimate, tidyverse)\n\n\n\n\n\nexam &lt;- read_csv(\"data/Exam_data.csv\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#installing-and-loading-packages",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#installing-and-loading-packages",
+    "title": "Hands-on Exercise 4.3",
+    "section": "",
+    "text": "plotly for creating interactive plot,\ngganimate for creating animation plot,\nDT for displaying interactive html table,\ncrosstalk for for implementing cross-widget interactions (currently, linked brushing and filtering), and\nggdist for visualising distribution and uncertainty.\n\n\npacman::p_load(plotly, crosstalk, DT, ggdist, ggridges, colorspace, gganimate, tidyverse)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#data-import",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#data-import",
+    "title": "Hands-on Exercise 4.3",
+    "section": "",
+    "text": "exam &lt;- read_csv(\"data/Exam_data.csv\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#plotting-standard-error-bars-of-point-estimates",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#plotting-standard-error-bars-of-point-estimates",
+    "title": "Hands-on Exercise 4.3",
+    "section": "Plotting standard error bars of point estimates",
+    "text": "Plotting standard error bars of point estimates\n\nggplot(my_sum) +\n  geom_errorbar(\n    aes(x=RACE, \n        ymin=mean-se, \n        ymax=mean+se), \n    width=0.2, \n    colour=\"black\", \n    alpha=0.9, \n    linewidth=0.5) +\n  geom_point(aes\n           (x=RACE, \n            y=mean), \n           stat=\"identity\", \n           color=\"red\",\n           size = 1.5,\n           alpha=1) +\n  ggtitle(\"Standard error of mean maths score by rac\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#plotting-confidence-interval-of-point-estimates",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#plotting-confidence-interval-of-point-estimates",
+    "title": "Hands-on Exercise 4.3",
+    "section": "Plotting confidence interval of point estimates",
+    "text": "Plotting confidence interval of point estimates\n\nggplot(my_sum) +\n  geom_errorbar(\n    aes(x=reorder(RACE, -mean), \n        ymin=mean-1.96*se, \n        ymax=mean+1.96*se), \n    width=0.2, \n    colour=\"black\", \n    alpha=0.9, \n    linewidth=0.5) +\n  geom_point(aes\n           (x=RACE, \n            y=mean), \n           stat=\"identity\", \n           color=\"red\",\n           size = 1.5,\n           alpha=1) +\n  labs(x = \"Maths score\",\n       title = \"95% confidence interval of mean maths score by race\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-with-interactive-error-bars",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-with-interactive-error-bars",
+    "title": "Hands-on Exercise 4.3",
+    "section": "Visualizing the uncertainty of point estimates with interactive error bars",
+    "text": "Visualizing the uncertainty of point estimates with interactive error bars\n\nshared_df = SharedData$new(my_sum)\n\nbscols(widths = c(4,8),\n       ggplotly((ggplot(shared_df) +\n                   geom_errorbar(aes(\n                     x=reorder(RACE, -mean),\n                     ymin=mean-2.58*se, \n                     ymax=mean+2.58*se), \n                     width=0.2, \n                     colour=\"black\", \n                     alpha=0.9, \n                     size=0.5) +\n                   geom_point(aes(\n                     x=RACE, \n                     y=mean, \n                     text = paste(\"Race:\", `RACE`, \n                                  \"&lt;br&gt;N:\", `n`,\n                                  \"&lt;br&gt;Avg. Scores:\", round(mean, digits = 2),\n                                  \"&lt;br&gt;95% CI:[\", \n                                  round((mean-2.58*se), digits = 2), \",\",\n                                  round((mean+2.58*se), digits = 2),\"]\")),\n                     stat=\"identity\", \n                     color=\"red\", \n                     size = 1.5, \n                     alpha=1) + \n                   xlab(\"Race\") + \n                   ylab(\"Average Scores\") + \n                   theme_minimal() + \n                   theme(axis.text.x = element_text(\n                     angle = 45, vjust = 0.5, hjust=1),\n                     plot.title = element_text(size = 10)) +\n                   ggtitle(\"99% Confidence interval of average /&lt;br&gt;maths scores by race\")), \n                tooltip = \"text\"), \n       DT::datatable(shared_df, \n                     rownames = FALSE, \n                     class=\"compact\", \n                     width=\"100%\", \n                     options = list(pageLength = 10,\n                                    scrollX=T), \n                     colnames = c(\"No. of pupils\", \n                                  \"Avg Scores\",\n                                  \"Std Dev\",\n                                  \"Std Error\")) %&gt;%\n         formatRound(columns=c('mean', 'sd', 'se'),\n                     digits=2))"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods---stat_pointinterval",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods---stat_pointinterval",
+    "title": "Hands-on Exercise 4.3",
+    "section": "Visualizing the uncertainty of point estimates: ggdist methods - stat_pointinterval()",
+    "text": "Visualizing the uncertainty of point estimates: ggdist methods - stat_pointinterval()\n\nexam %&gt;%\n  ggplot(aes(x = RACE, \n             y = MATHS)) +\n  stat_pointinterval() +\n  labs(\n    title = \"Visualising confidence intervals of mean math score\",\n    subtitle = \"Mean Point + Multiple-interval plot\")\n\n\n\n\n\n\n\n\n\nexam %&gt;%\n  ggplot(aes(x = RACE, y = MATHS)) +\n  stat_pointinterval(.width = 0.95,\n  .point = median,\n  .interval = qi) +\n  labs(\n    title = \"Visualising confidence intervals of median math score\",\n    subtitle = \"Median Point + Multiple-interval plot\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods",
+    "title": "Hands-on Exercise 4.3",
+    "section": "Visualizing the uncertainty of point estimates: ggdist methods",
+    "text": "Visualizing the uncertainty of point estimates: ggdist methods\n\nexam %&gt;%\n  ggplot(aes(x = RACE, \n             y = MATHS)) +\n  stat_pointinterval(\n    show.legend = FALSE) +   \n  labs(\n    title = \"Visualising confidence intervals of mean math score\",\n    subtitle = \"Mean Point + Multiple-interval plot\")\n\n\n\n\n\n\n\n\n\nexam %&gt;%\n  ggplot(aes(x = RACE, y = MATHS)) +\n  stat_pointinterval(\n    .width = c(0.95, 0.99),   # Add both 95% and 99% intervals\n    .point = mean,            # Use mean as the central point\n    .interval = qi,           # Quantile intervals\n    show.legend = FALSE\n  ) +\n  labs(\n    title = \"Visualising 95% and 99% Confidence Intervals of Mean Math Score\",\n    subtitle = \"Mean Point + Multiple-interval Plot\"\n  )"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods---stat_gradientinterval",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods---stat_gradientinterval",
+    "title": "Hands-on Exercise 4.3",
+    "section": "Visualizing the uncertainty of point estimates: ggdist methods - stat_gradientinterval()",
+    "text": "Visualizing the uncertainty of point estimates: ggdist methods - stat_gradientinterval()\n\nexam %&gt;%\n  ggplot(aes(x = RACE, \n             y = MATHS)) +\n  stat_gradientinterval(   \n    fill = \"skyblue\",      \n    show.legend = TRUE     \n  ) +                        \n  labs(\n    title = \"Visualising confidence intervals of mean math score\",\n    subtitle = \"Gradient + interval plot\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#installing-ungeviz-package",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#installing-ungeviz-package",
+    "title": "Hands-on Exercise 4.3",
+    "section": "Installing ungeviz package",
+    "text": "Installing ungeviz package\n\ndevtools::install_github(\"wilkelab/ungeviz\")"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#launch-the-application-in-r",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#launch-the-application-in-r",
+    "title": "Hands-on Exercise 4.3",
+    "section": "Launch the application in R",
+    "text": "Launch the application in R\n\nlibrary(ungeviz)"
+  },
+  {
+    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualising-uncertainty-with-hypothetical-outcome-plots-hops-1",
+    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualising-uncertainty-with-hypothetical-outcome-plots-hops-1",
+    "title": "Hands-on Exercise 4.3",
+    "section": "Visualising Uncertainty with Hypothetical Outcome Plots (HOPs)",
+    "text": "Visualising Uncertainty with Hypothetical Outcome Plots (HOPs)\n\nggplot(data = exam, \n       (aes(x = factor(RACE), \n            y = MATHS))) +\n  geom_point(position = position_jitter(\n    height = 0.3, \n    width = 0.05), \n    size = 0.4, \n    color = \"#0072B2\", \n    alpha = 1/2) +\n  geom_hpline(data = sampler(25, \n                             group = RACE), \n              height = 0.6, \n              color = \"#D55E00\") +\n  theme_bw() + \n  transition_states(.draw, 1, 3)"
   },
   {
     "objectID": "Hands-on_Ex/Hands-on_Ex05/Hands-on_Ex05.html",
@@ -259,654 +903,45 @@
     "text": "Interactivity\n\nvisNetwork(GAStech_nodes,\n           GAStech_edges_aggregated) %&gt;%\n  visIgraphLayout(layout = \"layout_with_fr\") %&gt;%\n  visOptions(highlightNearest = TRUE,\n             nodesIdSelection = TRUE) %&gt;%\n  visLegend() %&gt;%\n  visLayout(randomSeed = 123)"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html",
-    "title": "Hands-on Exercise 4.3",
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html",
+    "title": "Take-home_Ex01",
     "section": "",
-    "text": "plotly for creating interactive plot,\ngganimate for creating animation plot,\nDT for displaying interactive html table,\ncrosstalk for for implementing cross-widget interactions (currently, linked brushing and filtering), and\nggdist for visualising distribution and uncertainty.\n\n\npacman::p_load(plotly, crosstalk, DT, ggdist, ggridges, colorspace, gganimate, tidyverse)\n\n\n\n\n\nexam &lt;- read_csv(\"data/Exam_data.csv\")"
+    "text": "This Quarto document supports a data-driven article by a local online media company that aims to investigate Singapore’s demographic structure and distribution in 2024. The analysis uses official population statistics to highlight the top 28 planning areas (PAs) with the highest total resident population in a bar chart, followed by a diverging gender distribution define that clearly shows the male-to-female ratio in these locations. Furthermore, the report includes population pyramids for the top 24 most populated PAs, which illustrate age distribution patterns across sexes. These pyramids are especially useful for detecting places with aging populations, as evidenced by wider age bands at the upper age levels. In addition to supporting the media company’s upcoming article with clear, appealing visuals, the visualizations collectively offer a thorough overview of where people live, how the population is divided by gender, and which regions may experience demographic shifts related to aging. These are important insights that can guide public discourse and policymaking.\n\n\n\nIn order to prepare the data for precise analysis and visualization, this process involves cleaning the data by eliminating duplicates and missing values, recoding age values, and converting important variables to the proper formats.\n\n\nWe load the following R packages using the pacman::p_load() function:\n\ntidyverse – Core collection of R packages designed for data science\ndplyr – For data manipulation and transformation.\npatchwork – To combine multiple ggplot2 plots into a single layout.\nscales – For formatting axes and labels (e.g., commas, percentages).\nforcats – For working with categorical/factor variables.\n\n\npacman::p_load(dplyr, patchwork, tidyverse, scales, forcasts)\n\n\n\n\n\nsg_res &lt;- read.csv(\"data/respopagesex2024.csv\")\n\nThis is the description of the data:\n\n\n\n\n\n\n\n\nColumn Name\nDescription\nData Type\n\n\n\n\nPA\nPlanning Area (e.g., Tampines, Woodlands, etc.)\nCategorical\n\n\nAge\nAge group (e.g., “0”, “5”, …, “90+”, typically in 5-year bins)\nOrdinal (Factor or Integer)\n\n\nSex\nGender category: “Males” or “Females”\nCategorical\n\n\nPop\nPopulation count for the given PA, age group, and sex\nNumeric (Integer)\n\n\n\n\n\n\nThis section involved cleaning and formatting the dataset by removing duplicates and missing values, converting the “90_and_Over” age group to numeric, and converting key variables like age, sex, and planning area into appropriate data types for analysis.\n\n\n\nsg_res &lt;- sg_res %&gt;%\n  distinct()\n\n\n\n\n\nsg_res &lt;- sg_res %&gt;%\n  mutate(\n    Age = ifelse(Age == \"90_and_Over\", \"90\", Age),\n    Age = as.numeric(Age),\n    PA = as.factor(PA),\n    SZ = as.factor(SZ),\n    Sex = as.factor(Sex),\n    Time = as.integer(Time)\n  ) %&gt;%\n  drop_na()\n\n\n\n\n\n\n\n\nThis section visualizes the top 28 planning areas (PAs) in Singapore based on their total population. The first bar chart ranks these areas, revealing that Tampines, Bedok, and Sengkang are the most populous, each with over 265,000 residents. These areas are key residential hubs and likely experience high demand for infrastructure and services.\nThe second plot is a diverging bar chart that shows the gender distribution within each of these top 28 PAs. The proportions of males and females are nearly balanced across most regions, with slight variations. For example, Bukit Merah, Tanglin and Queenstown have a noticeably higher female percentage (around 53–54%), while areas like Choa Chu Kang and Woodlands show an exact or near-equal male-female split (50-50%).\nThese visualizations provide a clear demographic snapshot—highlighting not only which areas are most densely populated, but also offering insights into gender balance, which can influence local policies, healthcare planning, and community programs.\n\n\n\ntop28_pa_pop &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(TotalPop = sum(Pop), .groups = \"drop\") %&gt;%\n  arrange(desc(TotalPop)) %&gt;%\n  slice_head(n = 28)\n\ntotal_pop_by_pa &lt;- ggplot(top28_pa_pop, aes(x = TotalPop, y = fct_reorder(PA, TotalPop))) +\n  geom_col(fill = \"steelblue\") +\n  geom_text(aes(label = scales::comma(TotalPop)), hjust = -0.1, size = 3)+\n  labs(\n    title = \"Top 28 Planning Areas by Total Population\",\n    x = \"Total Population\",\n    y = \"Planning Area\"\n  ) +\n  theme_minimal()+\n  theme(axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        plot.title = element_text(size = 30))\n\n\n\n\n\npop_sex_dist &lt;- sg_res %&gt;%\n  filter(PA %in% top28_pa_pop$PA) %&gt;%\n  group_by(PA, Sex) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\") %&gt;%\n  group_by(PA) %&gt;%\n  mutate(\n    Total = sum(Pop),\n    Percent = Pop / Total,\n    Pop_signed = ifelse(Sex == \"Males\", -Pop, Pop),\n    Percent_label = paste0(round(Percent * 100), \"%\")\n  ) %&gt;%\n  ungroup()\n\npop_sex_dist$PA &lt;- factor(pop_sex_dist$PA, levels = top28_pa_pop$PA)\n\n\nsex_of_pop_by_pa &lt;- ggplot(pop_sex_dist, aes(x = Pop_signed, y = PA, fill = Sex)) +\n  geom_col(width = 0.6) +\n  geom_text(aes(label = Percent_label),\n            position = position_stack(vjust = 0.5),\n            size = 3.2, color = \"white\") +\n  scale_x_continuous(\n    labels = abs,\n    expand = expansion(mult = c(0.1, 0.1))\n  ) +\n  labs(\n    title = \"Gender Distribution in Top 28 Planning Areas\",\n    x = \"Population Count\",\n    y = \"Planning Area\"\n  ) +\n  theme_minimal() +\n  theme(axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        plot.title = element_text(size = 30))\n  scale_fill_manual(values = c(\"Males\" = \"#1f77b4\", \"Females\" = \"#ff7f0e\"))\n\n&lt;ggproto object: Class ScaleDiscrete, Scale, gg&gt;\n    aesthetics: fill\n    axis_order: function\n    break_info: function\n    break_positions: function\n    breaks: waiver\n    call: call\n    clone: function\n    dimension: function\n    drop: TRUE\n    expand: waiver\n    get_breaks: function\n    get_breaks_minor: function\n    get_labels: function\n    get_limits: function\n    get_transformation: function\n    guide: legend\n    is_discrete: function\n    is_empty: function\n    labels: waiver\n    limits: function\n    make_sec_title: function\n    make_title: function\n    map: function\n    map_df: function\n    n.breaks.cache: NULL\n    na.translate: TRUE\n    na.value: grey50\n    name: waiver\n    palette: function\n    palette.cache: NULL\n    position: left\n    range: environment\n    rescale: function\n    reset: function\n    train: function\n    train_df: function\n    transform: function\n    transform_df: function\n    super:  &lt;ggproto object: Class ScaleDiscrete, Scale, gg&gt;\n\n\n\n\n\n\ncombine_plots &lt;- total_pop_by_pa / plot_spacer() / sex_of_pop_by_pa +\n  plot_layout(heights = c(1, 0.1, 1))\ncombine_plots\n\n\n\n\n\n\n\n\n\n\n\n\nThis section presents population pyramids for the top 24 planning areas (PAs) in Singapore, offering a detailed view of age and gender distribution within each region. Each pyramid plots the male population on the left and female population on the right across single-year age groups, allowing for the identification of demographic trends such as youth-dominant or aging populations.\nFrom the visualizations, areas like Woodlands, Tampines, Sengkang, and Punggol show relatively balanced and broad bases, indicating a younger population with strong representation in the working-age and child demographics. In contrast, areas like Bukit Timah, Queenstown, and Bukit Merah display narrower bases and wider upper sections, and giving a signal of an aging population with a higher proportion of elderly residents.\nThese insights are crucial for urban planning, healthcare provisioning, and policymaking, as they highlight the varying age structures and potential future needs of each planning area.\n\n# Filter out the top 24 PA that has the highest population \ntop_24_pas &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(Total = sum(Pop), .groups = \"drop\") %&gt;%\n  slice_max(order_by = Total, n = 24) %&gt;%\n  pull(PA)\n\npyramid_data_top24 &lt;- sg_res %&gt;%\n  filter(PA %in% top_24_pas) %&gt;%\n  group_by(PA, Age, Sex) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\") %&gt;%\n  mutate(Pop = ifelse(Sex == \"Males\", -Pop, Pop))\n\n\nggplot(pyramid_data_top24, aes(x = Age, y = Pop, fill = Sex)) +\n  geom_bar(stat = \"identity\", width = 0.8) +\n  coord_flip() +\n  scale_y_continuous(labels = abs) +\n  facet_wrap(~ PA, scales = \"free_y\", ncol = 6) +  # 6 columns for layout\n  labs(title = \"Population Pyramids of Top 24 Planning Areas\",\n       x = \"Age Group\", y = \"Population\") +\n  theme_minimal(base_size = 9) +\n  theme(axis.title.x = element_text(size = 25),\n        axis.title.y = element_text(size = 25),\n        axis.text.y = element_text(size = 13),\n          axis.text.x = element_text(size = 13),\n        strip.text = element_text(size = 16, face = \"bold\"),\n        legend.title = element_text(size = 25),\n  legend.text = element_text(size = 20),\n        plot.title = element_text(size = 45)) +\n  scale_fill_manual(values = c(\"Males\" = \"skyblue\", \"Females\" = \"salmon\"))\n\n\n\n\n\n\n\n\n\n\n\n\nWith an emphasis on planning areas with the largest populations, this publication offers a thorough demographic estimate of Singapore’s resident population in 2024. The analysis uses systematic data preparation and effective visualization approaches to highlight the top 28 planning areas by total population and evaluate their gender distribution using diverging bar charts. Furthermore, the top 24 areas’ population pyramids provide information about the age distribution of each region, highlighting places with younger populations compared to those with aging populations. These visual aids are useful for influencing public discussions, urban planning, and policy formation; they are particularly useful for a local media article that aims to clarify Singapore’s changing demographics."
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#installing-and-loading-packages",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#installing-and-loading-packages",
-    "title": "Hands-on Exercise 4.3",
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#overview",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#overview",
+    "title": "Take-home_Ex01",
     "section": "",
-    "text": "plotly for creating interactive plot,\ngganimate for creating animation plot,\nDT for displaying interactive html table,\ncrosstalk for for implementing cross-widget interactions (currently, linked brushing and filtering), and\nggdist for visualising distribution and uncertainty.\n\n\npacman::p_load(plotly, crosstalk, DT, ggdist, ggridges, colorspace, gganimate, tidyverse)"
+    "text": "This Quarto document supports a data-driven article by a local online media company that aims to investigate Singapore’s demographic structure and distribution in 2024. The analysis uses official population statistics to highlight the top 28 planning areas (PAs) with the highest total resident population in a bar chart, followed by a diverging gender distribution define that clearly shows the male-to-female ratio in these locations. Furthermore, the report includes population pyramids for the top 24 most populated PAs, which illustrate age distribution patterns across sexes. These pyramids are especially useful for detecting places with aging populations, as evidenced by wider age bands at the upper age levels. In addition to supporting the media company’s upcoming article with clear, appealing visuals, the visualizations collectively offer a thorough overview of where people live, how the population is divided by gender, and which regions may experience demographic shifts related to aging. These are important insights that can guide public discourse and policymaking."
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#data-import",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#data-import",
-    "title": "Hands-on Exercise 4.3",
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#data-preparation",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#data-preparation",
+    "title": "Take-home_Ex01",
     "section": "",
-    "text": "exam &lt;- read_csv(\"data/Exam_data.csv\")"
+    "text": "In order to prepare the data for precise analysis and visualization, this process involves cleaning the data by eliminating duplicates and missing values, recoding age values, and converting important variables to the proper formats.\n\n\nWe load the following R packages using the pacman::p_load() function:\n\ntidyverse – Core collection of R packages designed for data science\ndplyr – For data manipulation and transformation.\npatchwork – To combine multiple ggplot2 plots into a single layout.\nscales – For formatting axes and labels (e.g., commas, percentages).\nforcats – For working with categorical/factor variables.\n\n\npacman::p_load(dplyr, patchwork, tidyverse, scales, forcasts)\n\n\n\n\n\nsg_res &lt;- read.csv(\"data/respopagesex2024.csv\")\n\nThis is the description of the data:\n\n\n\n\n\n\n\n\nColumn Name\nDescription\nData Type\n\n\n\n\nPA\nPlanning Area (e.g., Tampines, Woodlands, etc.)\nCategorical\n\n\nAge\nAge group (e.g., “0”, “5”, …, “90+”, typically in 5-year bins)\nOrdinal (Factor or Integer)\n\n\nSex\nGender category: “Males” or “Females”\nCategorical\n\n\nPop\nPopulation count for the given PA, age group, and sex\nNumeric (Integer)\n\n\n\n\n\n\nThis section involved cleaning and formatting the dataset by removing duplicates and missing values, converting the “90_and_Over” age group to numeric, and converting key variables like age, sex, and planning area into appropriate data types for analysis.\n\n\n\nsg_res &lt;- sg_res %&gt;%\n  distinct()\n\n\n\n\n\nsg_res &lt;- sg_res %&gt;%\n  mutate(\n    Age = ifelse(Age == \"90_and_Over\", \"90\", Age),\n    Age = as.numeric(Age),\n    PA = as.factor(PA),\n    SZ = as.factor(SZ),\n    Sex = as.factor(Sex),\n    Time = as.integer(Time)\n  ) %&gt;%\n  drop_na()"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#plotting-standard-error-bars-of-point-estimates",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#plotting-standard-error-bars-of-point-estimates",
-    "title": "Hands-on Exercise 4.3",
-    "section": "Plotting standard error bars of point estimates",
-    "text": "Plotting standard error bars of point estimates\n\nggplot(my_sum) +\n  geom_errorbar(\n    aes(x=RACE, \n        ymin=mean-se, \n        ymax=mean+se), \n    width=0.2, \n    colour=\"black\", \n    alpha=0.9, \n    linewidth=0.5) +\n  geom_point(aes\n           (x=RACE, \n            y=mean), \n           stat=\"identity\", \n           color=\"red\",\n           size = 1.5,\n           alpha=1) +\n  ggtitle(\"Standard error of mean maths score by rac\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#plotting-confidence-interval-of-point-estimates",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#plotting-confidence-interval-of-point-estimates",
-    "title": "Hands-on Exercise 4.3",
-    "section": "Plotting confidence interval of point estimates",
-    "text": "Plotting confidence interval of point estimates\n\nggplot(my_sum) +\n  geom_errorbar(\n    aes(x=reorder(RACE, -mean), \n        ymin=mean-1.96*se, \n        ymax=mean+1.96*se), \n    width=0.2, \n    colour=\"black\", \n    alpha=0.9, \n    linewidth=0.5) +\n  geom_point(aes\n           (x=RACE, \n            y=mean), \n           stat=\"identity\", \n           color=\"red\",\n           size = 1.5,\n           alpha=1) +\n  labs(x = \"Maths score\",\n       title = \"95% confidence interval of mean maths score by race\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-with-interactive-error-bars",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-with-interactive-error-bars",
-    "title": "Hands-on Exercise 4.3",
-    "section": "Visualizing the uncertainty of point estimates with interactive error bars",
-    "text": "Visualizing the uncertainty of point estimates with interactive error bars\n\nshared_df = SharedData$new(my_sum)\n\nbscols(widths = c(4,8),\n       ggplotly((ggplot(shared_df) +\n                   geom_errorbar(aes(\n                     x=reorder(RACE, -mean),\n                     ymin=mean-2.58*se, \n                     ymax=mean+2.58*se), \n                     width=0.2, \n                     colour=\"black\", \n                     alpha=0.9, \n                     size=0.5) +\n                   geom_point(aes(\n                     x=RACE, \n                     y=mean, \n                     text = paste(\"Race:\", `RACE`, \n                                  \"&lt;br&gt;N:\", `n`,\n                                  \"&lt;br&gt;Avg. Scores:\", round(mean, digits = 2),\n                                  \"&lt;br&gt;95% CI:[\", \n                                  round((mean-2.58*se), digits = 2), \",\",\n                                  round((mean+2.58*se), digits = 2),\"]\")),\n                     stat=\"identity\", \n                     color=\"red\", \n                     size = 1.5, \n                     alpha=1) + \n                   xlab(\"Race\") + \n                   ylab(\"Average Scores\") + \n                   theme_minimal() + \n                   theme(axis.text.x = element_text(\n                     angle = 45, vjust = 0.5, hjust=1),\n                     plot.title = element_text(size = 10)) +\n                   ggtitle(\"99% Confidence interval of average /&lt;br&gt;maths scores by race\")), \n                tooltip = \"text\"), \n       DT::datatable(shared_df, \n                     rownames = FALSE, \n                     class=\"compact\", \n                     width=\"100%\", \n                     options = list(pageLength = 10,\n                                    scrollX=T), \n                     colnames = c(\"No. of pupils\", \n                                  \"Avg Scores\",\n                                  \"Std Dev\",\n                                  \"Std Error\")) %&gt;%\n         formatRound(columns=c('mean', 'sd', 'se'),\n                     digits=2))"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods---stat_pointinterval",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods---stat_pointinterval",
-    "title": "Hands-on Exercise 4.3",
-    "section": "Visualizing the uncertainty of point estimates: ggdist methods - stat_pointinterval()",
-    "text": "Visualizing the uncertainty of point estimates: ggdist methods - stat_pointinterval()\n\nexam %&gt;%\n  ggplot(aes(x = RACE, \n             y = MATHS)) +\n  stat_pointinterval() +\n  labs(\n    title = \"Visualising confidence intervals of mean math score\",\n    subtitle = \"Mean Point + Multiple-interval plot\")\n\n\n\n\n\n\n\n\n\nexam %&gt;%\n  ggplot(aes(x = RACE, y = MATHS)) +\n  stat_pointinterval(.width = 0.95,\n  .point = median,\n  .interval = qi) +\n  labs(\n    title = \"Visualising confidence intervals of median math score\",\n    subtitle = \"Median Point + Multiple-interval plot\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods",
-    "title": "Hands-on Exercise 4.3",
-    "section": "Visualizing the uncertainty of point estimates: ggdist methods",
-    "text": "Visualizing the uncertainty of point estimates: ggdist methods\n\nexam %&gt;%\n  ggplot(aes(x = RACE, \n             y = MATHS)) +\n  stat_pointinterval(\n    show.legend = FALSE) +   \n  labs(\n    title = \"Visualising confidence intervals of mean math score\",\n    subtitle = \"Mean Point + Multiple-interval plot\")\n\n\n\n\n\n\n\n\n\nexam %&gt;%\n  ggplot(aes(x = RACE, y = MATHS)) +\n  stat_pointinterval(\n    .width = c(0.95, 0.99),   # Add both 95% and 99% intervals\n    .point = mean,            # Use mean as the central point\n    .interval = qi,           # Quantile intervals\n    show.legend = FALSE\n  ) +\n  labs(\n    title = \"Visualising 95% and 99% Confidence Intervals of Mean Math Score\",\n    subtitle = \"Mean Point + Multiple-interval Plot\"\n  )"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods---stat_gradientinterval",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualizing-the-uncertainty-of-point-estimates-ggdist-methods---stat_gradientinterval",
-    "title": "Hands-on Exercise 4.3",
-    "section": "Visualizing the uncertainty of point estimates: ggdist methods - stat_gradientinterval()",
-    "text": "Visualizing the uncertainty of point estimates: ggdist methods - stat_gradientinterval()\n\nexam %&gt;%\n  ggplot(aes(x = RACE, \n             y = MATHS)) +\n  stat_gradientinterval(   \n    fill = \"skyblue\",      \n    show.legend = TRUE     \n  ) +                        \n  labs(\n    title = \"Visualising confidence intervals of mean math score\",\n    subtitle = \"Gradient + interval plot\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#installing-ungeviz-package",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#installing-ungeviz-package",
-    "title": "Hands-on Exercise 4.3",
-    "section": "Installing ungeviz package",
-    "text": "Installing ungeviz package\n\ndevtools::install_github(\"wilkelab/ungeviz\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#launch-the-application-in-r",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#launch-the-application-in-r",
-    "title": "Hands-on Exercise 4.3",
-    "section": "Launch the application in R",
-    "text": "Launch the application in R\n\nlibrary(ungeviz)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualising-uncertainty-with-hypothetical-outcome-plots-hops-1",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-03.html#visualising-uncertainty-with-hypothetical-outcome-plots-hops-1",
-    "title": "Hands-on Exercise 4.3",
-    "section": "Visualising Uncertainty with Hypothetical Outcome Plots (HOPs)",
-    "text": "Visualising Uncertainty with Hypothetical Outcome Plots (HOPs)\n\nggplot(data = exam, \n       (aes(x = factor(RACE), \n            y = MATHS))) +\n  geom_point(position = position_jitter(\n    height = 0.3, \n    width = 0.05), \n    size = 0.4, \n    color = \"#0072B2\", \n    alpha = 1/2) +\n  geom_hpline(data = sampler(25, \n                             group = RACE), \n              height = 0.6, \n              color = \"#D55E00\") +\n  theme_bw() + \n  transition_states(.draw, 1, 3)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html",
-    "title": "Hands-on Exercise 4.1",
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#visualization",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#visualization",
+    "title": "Take-home_Ex01",
     "section": "",
-    "text": "pacman::p_load(ggdist, ggridges, ggthemes, colorspace, tidyverse)\n\n\n\n\n\nexam &lt;- read_csv(\"data/Exam_data.csv\")"
+    "text": "This section visualizes the top 28 planning areas (PAs) in Singapore based on their total population. The first bar chart ranks these areas, revealing that Tampines, Bedok, and Sengkang are the most populous, each with over 265,000 residents. These areas are key residential hubs and likely experience high demand for infrastructure and services.\nThe second plot is a diverging bar chart that shows the gender distribution within each of these top 28 PAs. The proportions of males and females are nearly balanced across most regions, with slight variations. For example, Bukit Merah, Tanglin and Queenstown have a noticeably higher female percentage (around 53–54%), while areas like Choa Chu Kang and Woodlands show an exact or near-equal male-female split (50-50%).\nThese visualizations provide a clear demographic snapshot—highlighting not only which areas are most densely populated, but also offering insights into gender balance, which can influence local policies, healthcare planning, and community programs.\n\n\n\ntop28_pa_pop &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(TotalPop = sum(Pop), .groups = \"drop\") %&gt;%\n  arrange(desc(TotalPop)) %&gt;%\n  slice_head(n = 28)\n\ntotal_pop_by_pa &lt;- ggplot(top28_pa_pop, aes(x = TotalPop, y = fct_reorder(PA, TotalPop))) +\n  geom_col(fill = \"steelblue\") +\n  geom_text(aes(label = scales::comma(TotalPop)), hjust = -0.1, size = 3)+\n  labs(\n    title = \"Top 28 Planning Areas by Total Population\",\n    x = \"Total Population\",\n    y = \"Planning Area\"\n  ) +\n  theme_minimal()+\n  theme(axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        plot.title = element_text(size = 30))\n\n\n\n\n\npop_sex_dist &lt;- sg_res %&gt;%\n  filter(PA %in% top28_pa_pop$PA) %&gt;%\n  group_by(PA, Sex) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\") %&gt;%\n  group_by(PA) %&gt;%\n  mutate(\n    Total = sum(Pop),\n    Percent = Pop / Total,\n    Pop_signed = ifelse(Sex == \"Males\", -Pop, Pop),\n    Percent_label = paste0(round(Percent * 100), \"%\")\n  ) %&gt;%\n  ungroup()\n\npop_sex_dist$PA &lt;- factor(pop_sex_dist$PA, levels = top28_pa_pop$PA)\n\n\nsex_of_pop_by_pa &lt;- ggplot(pop_sex_dist, aes(x = Pop_signed, y = PA, fill = Sex)) +\n  geom_col(width = 0.6) +\n  geom_text(aes(label = Percent_label),\n            position = position_stack(vjust = 0.5),\n            size = 3.2, color = \"white\") +\n  scale_x_continuous(\n    labels = abs,\n    expand = expansion(mult = c(0.1, 0.1))\n  ) +\n  labs(\n    title = \"Gender Distribution in Top 28 Planning Areas\",\n    x = \"Population Count\",\n    y = \"Planning Area\"\n  ) +\n  theme_minimal() +\n  theme(axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        plot.title = element_text(size = 30))\n  scale_fill_manual(values = c(\"Males\" = \"#1f77b4\", \"Females\" = \"#ff7f0e\"))\n\n&lt;ggproto object: Class ScaleDiscrete, Scale, gg&gt;\n    aesthetics: fill\n    axis_order: function\n    break_info: function\n    break_positions: function\n    breaks: waiver\n    call: call\n    clone: function\n    dimension: function\n    drop: TRUE\n    expand: waiver\n    get_breaks: function\n    get_breaks_minor: function\n    get_labels: function\n    get_limits: function\n    get_transformation: function\n    guide: legend\n    is_discrete: function\n    is_empty: function\n    labels: waiver\n    limits: function\n    make_sec_title: function\n    make_title: function\n    map: function\n    map_df: function\n    n.breaks.cache: NULL\n    na.translate: TRUE\n    na.value: grey50\n    name: waiver\n    palette: function\n    palette.cache: NULL\n    position: left\n    range: environment\n    rescale: function\n    reset: function\n    train: function\n    train_df: function\n    transform: function\n    transform_df: function\n    super:  &lt;ggproto object: Class ScaleDiscrete, Scale, gg&gt;\n\n\n\n\n\n\ncombine_plots &lt;- total_pop_by_pa / plot_spacer() / sex_of_pop_by_pa +\n  plot_layout(heights = c(1, 0.1, 1))\ncombine_plots\n\n\n\n\n\n\n\n\n\n\n\n\nThis section presents population pyramids for the top 24 planning areas (PAs) in Singapore, offering a detailed view of age and gender distribution within each region. Each pyramid plots the male population on the left and female population on the right across single-year age groups, allowing for the identification of demographic trends such as youth-dominant or aging populations.\nFrom the visualizations, areas like Woodlands, Tampines, Sengkang, and Punggol show relatively balanced and broad bases, indicating a younger population with strong representation in the working-age and child demographics. In contrast, areas like Bukit Timah, Queenstown, and Bukit Merah display narrower bases and wider upper sections, and giving a signal of an aging population with a higher proportion of elderly residents.\nThese insights are crucial for urban planning, healthcare provisioning, and policymaking, as they highlight the varying age structures and potential future needs of each planning area.\n\n# Filter out the top 24 PA that has the highest population \ntop_24_pas &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(Total = sum(Pop), .groups = \"drop\") %&gt;%\n  slice_max(order_by = Total, n = 24) %&gt;%\n  pull(PA)\n\npyramid_data_top24 &lt;- sg_res %&gt;%\n  filter(PA %in% top_24_pas) %&gt;%\n  group_by(PA, Age, Sex) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\") %&gt;%\n  mutate(Pop = ifelse(Sex == \"Males\", -Pop, Pop))\n\n\nggplot(pyramid_data_top24, aes(x = Age, y = Pop, fill = Sex)) +\n  geom_bar(stat = \"identity\", width = 0.8) +\n  coord_flip() +\n  scale_y_continuous(labels = abs) +\n  facet_wrap(~ PA, scales = \"free_y\", ncol = 6) +  # 6 columns for layout\n  labs(title = \"Population Pyramids of Top 24 Planning Areas\",\n       x = \"Age Group\", y = \"Population\") +\n  theme_minimal(base_size = 9) +\n  theme(axis.title.x = element_text(size = 25),\n        axis.title.y = element_text(size = 25),\n        axis.text.y = element_text(size = 13),\n          axis.text.x = element_text(size = 13),\n        strip.text = element_text(size = 16, face = \"bold\"),\n        legend.title = element_text(size = 25),\n  legend.text = element_text(size = 20),\n        plot.title = element_text(size = 45)) +\n  scale_fill_manual(values = c(\"Males\" = \"skyblue\", \"Females\" = \"salmon\"))"
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#installing-and-loading-packages",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#installing-and-loading-packages",
-    "title": "Hands-on Exercise 4.1",
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#summary",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#summary",
+    "title": "Take-home_Ex01",
     "section": "",
-    "text": "pacman::p_load(ggdist, ggridges, ggthemes, colorspace, tidyverse)"
+    "text": "With an emphasis on planning areas with the largest populations, this publication offers a thorough demographic estimate of Singapore’s resident population in 2024. The analysis uses systematic data preparation and effective visualization approaches to highlight the top 28 planning areas by total population and evaluate their gender distribution using diverging bar charts. Furthermore, the top 24 areas’ population pyramids provide information about the age distribution of each region, highlighting places with younger populations compared to those with aging populations. These visual aids are useful for influencing public discussions, urban planning, and policy formation; they are particularly useful for a local media article that aims to clarify Singapore’s changing demographics."
   },
   {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#importing-data",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#importing-data",
-    "title": "Hands-on Exercise 4.1",
-    "section": "",
-    "text": "exam &lt;- read_csv(\"data/Exam_data.csv\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#varying-fill-colors-along-the-x-axis",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#varying-fill-colors-along-the-x-axis",
-    "title": "Hands-on Exercise 4.1",
-    "section": "Varying fill colors along the x axis",
-    "text": "Varying fill colors along the x axis\n\nggplot(exam, \n       aes(x = ENGLISH, \n           y = CLASS,\n           fill = stat(x))) +\n  geom_density_ridges_gradient(\n    scale = 3,\n    rel_min_height = 0.01) +\n  scale_fill_viridis_c(name = \"Temp. [F]\",\n                       option = \"C\") +\n  scale_x_continuous(\n    name = \"English grades\",\n    expand = c(0, 0)\n  ) +\n  scale_y_discrete(name = NULL, expand = expansion(add = c(0.2, 2.6))) +\n  theme_ridges()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#mapping-the-probabilities-directly-onto-colour",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#mapping-the-probabilities-directly-onto-colour",
-    "title": "Hands-on Exercise 4.1",
-    "section": "Mapping the probabilities directly onto colour",
-    "text": "Mapping the probabilities directly onto colour\n\nggplot(exam,\n       aes(x = ENGLISH, \n           y = CLASS, \n           fill = 0.5 - abs(0.5-stat(ecdf)))) +\n  stat_density_ridges(geom = \"density_ridges_gradient\", \n                      calc_ecdf = TRUE) +\n  scale_fill_viridis_c(name = \"Tail probability\",\n                       direction = -1) +\n  theme_ridges()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#ridgeline-plots-with-quantile-lines",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#ridgeline-plots-with-quantile-lines",
-    "title": "Hands-on Exercise 4.1",
-    "section": "Ridgeline plots with quantile lines",
-    "text": "Ridgeline plots with quantile lines\n\nggplot(exam,\n       aes(x = ENGLISH, \n           y = CLASS, \n           fill = factor(stat(quantile))\n           )) +\n  stat_density_ridges(\n    geom = \"density_ridges_gradient\",\n    calc_ecdf = TRUE, \n    quantiles = 4,\n    quantile_lines = TRUE) +\n  scale_fill_viridis_d(name = \"Quartiles\") +\n  theme_ridges()\n\n\n\n\n\n\n\n\n\nggplot(exam,\n       aes(x = ENGLISH, \n           y = CLASS, \n           fill = factor(stat(quantile))\n           )) +\n  stat_density_ridges(\n    geom = \"density_ridges_gradient\",\n    calc_ecdf = TRUE, \n    quantiles = c(0.025, 0.975)\n    ) +\n  scale_fill_manual(\n    name = \"Probability\",\n    values = c(\"#FF0000A0\", \"#A0A0A0A0\", \"#0000FFA0\"),\n    labels = c(\"(0, 0.025]\", \"(0.025, 0.975]\", \"(0.975, 1]\")\n  ) +\n  theme_ridges()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#plotting-a-half-eye-graph",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#plotting-a-half-eye-graph",
-    "title": "Hands-on Exercise 4.1",
-    "section": "Plotting a Half Eye graph",
-    "text": "Plotting a Half Eye graph\n\nggplot(exam, \n       aes(x = RACE, \n           y = ENGLISH)) +\n  stat_halfeye(adjust = 0.5,\n               justification = -0.2,\n               .width = 0,\n               point_colour = NA)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#adding-the-boxplot-with-geom_boxplot",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#adding-the-boxplot-with-geom_boxplot",
-    "title": "Hands-on Exercise 4.1",
-    "section": "Adding the boxplot with geom_boxplot()",
-    "text": "Adding the boxplot with geom_boxplot()\nAdd the second geometry layer using geom_boxplot() of ggplot2. This produces a narrow boxplot. We reduce the width and adjust the opacity.\n\nggplot(exam, \n       aes(x = RACE, \n           y = ENGLISH)) +\n  stat_halfeye(adjust = 0.5,\n               justification = -0.2,\n               .width = 0,\n               point_colour = NA) +\n  geom_boxplot(width = .20,\n               outlier.shape = NA)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#adding-the-dot-plots-with-stat_dots",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#adding-the-dot-plots-with-stat_dots",
-    "title": "Hands-on Exercise 4.1",
-    "section": "Adding the Dot Plots with stat_dots()",
-    "text": "Adding the Dot Plots with stat_dots()\nstat_dots() of ggdist package. This produces a half-dotplot, which is similar to a histogram that indicates the number of samples (number of dots) in each bin.\n\nggplot(exam, \n       aes(x = RACE, \n           y = ENGLISH)) +\n  stat_halfeye(adjust = 0.5,\n               justification = -0.2,\n               .width = 0,\n               point_colour = NA) +\n  geom_boxplot(width = .20,\n               outlier.shape = NA) +\n  stat_dots(side = \"left\", \n            justification = 1.2, \n            binwidth = .5,\n            dotsize = 2)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#final-touch-of-the-plot",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-01.html#final-touch-of-the-plot",
-    "title": "Hands-on Exercise 4.1",
-    "section": "Final touch of the plot",
-    "text": "Final touch of the plot\n\nggplot(exam, \n       aes(x = RACE, \n           y = ENGLISH)) +\n  stat_halfeye(adjust = 0.5,\n               justification = -0.2,\n               .width = 0,\n               point_colour = NA) +\n  geom_boxplot(width = .20,\n               outlier.shape = NA) +\n  stat_dots(side = \"left\", \n            justification = 1.2, \n            binwidth = .5,\n            dotsize = 1.5) +\n  coord_flip() +\n  theme_economist()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html",
-    "title": "Hands-on Exercise 3.1",
-    "section": "",
-    "text": "ggiraph for making ‘ggplot’ graphics interactive.\nplotly R library for plotting interactive statistical graphs.\nDT provides R interface to the JavaScript library. DataTables that create interactive table on html page.\npatchwork for combining multiple ggplot2 graphs into one figure."
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#tooltip-effect-with-tooltip-aesthetics",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#tooltip-effect-with-tooltip-aesthetics",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Tooltip effect with tooltip aesthetics",
-    "text": "Tooltip effect with tooltip aesthetics\n\np &lt;- ggplot(data = exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive(aes(tooltip = ID), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 6,\n  height_svg = 6*0.618\n)\n\n\n\n\n\n\np &lt;- ggplot(data = exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive(aes(tooltip = ID, data_id = ID), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 6,\n  height_svg = 6*0.618\n)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-multiple-information-on-tooltip",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-multiple-information-on-tooltip",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Displaying Multiple Information on tooltip",
-    "text": "Displaying Multiple Information on tooltip\n\nexam_data$tooltip &lt;- paste0(     \n  \"Name = \", exam_data$ID,   \"\\n Class = \", exam_data$CLASS, \"\\n Race = \", exam_data$RACE) \n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(tooltip = exam_data$tooltip), \n    stackgroups = TRUE,\n    binwidth = 1,\n    method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(\n  ggobj = p,\n  width_svg = 8,\n  height_svg = 8*0.618\n)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#customising-tooltip-style",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#customising-tooltip-style",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Customising Tooltip style",
-    "text": "Customising Tooltip style\n\ntooltip_css &lt;- \"background-color:lightblue; #&lt;&lt;\nfont-style:bold; color:black;\" #&lt;&lt;\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(tooltip = ID), stackgroups = TRUE,  binwidth = 1, method = \"histodot\") +               scale_y_continuous(NULL, breaks = NULL)\ngirafe(      \n  ggobj = p,   \n  width_svg = 6,  \n  height_svg = 6*0.618,\n  options = list(    #&lt;&lt;\n    opts_tooltip(    #&lt;&lt;\n      css = tooltip_css)) #&lt;&lt;\n)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-statistics-on-tooltip",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#displaying-statistics-on-tooltip",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Displaying statistics on tooltip",
-    "text": "Displaying statistics on tooltip\n\ntooltip &lt;- function(y, ymax, accuracy = .01) {\n  mean &lt;- scales::number(y, accuracy = accuracy)\n  sem &lt;- scales::number(ymax - y, accuracy = accuracy)\n  paste(\"Mean maths scores:\", mean, \"+/-\", sem)\n}\n\ngg_point &lt;- ggplot(data=exam_data, aes(x = RACE)) +\n  stat_summary(aes(y = MATHS, tooltip = after_stat( tooltip(y, ymax))),  \n    fun.data = \"mean_se\", \n    geom = GeomInteractiveCol, fill = \"light green\") +\n  stat_summary(aes(y = MATHS), fun.data = mean_se, geom = \"errorbar\", width = 0.2, size = 0.2)\n\ngirafe(ggobj = gg_point,\n       width_svg = 8,\n       height_svg = 8*0.618)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#hover-effect-with-data_id-aesthetic",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#hover-effect-with-data_id-aesthetic",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Hover effect with data_id aesthetic",
-    "text": "Hover effect with data_id aesthetic\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618)\n\n\n\n\n\n\nStyling hover effect\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618,\n  options = list(\n    opts_hover(css = \"fill: red;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#combining-tooltip-and-hover-effect",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#combining-tooltip-and-hover-effect",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Combining tooltip and hover effect",
-    "text": "Combining tooltip and hover effect\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS, fill = RACE)) +\n  geom_dotplot_interactive( aes(tooltip = RACE, data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618,\n  options = list(\n    opts_hover(css = \"stroke: black;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#click-effect-with-onclick",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#click-effect-with-onclick",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Click effect with onclick",
-    "text": "Click effect with onclick\n\nexam_data$onclick &lt;- sprintf(\"window.open(\\\"%s%s\\\")\", \n                             \"https://www.moe.gov.sg/schoolfinder?journey=Primary%20school\", \n   as.character(exam_data$ID))\np &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(onclick = onclick), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\ngirafe(                   \n  ggobj = p,              \n  width_svg = 6,        \n  height_svg = 6*0.618)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggiraph",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggiraph",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Coordinated Multiple Views with ggiraph",
-    "text": "Coordinated Multiple Views with ggiraph\n\np1 &lt;- ggplot(data=exam_data, aes(x = MATHS)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\n\np2 &lt;- ggplot(data=exam_data, aes(x = ENGLISH)) +\n  geom_dotplot_interactive( aes(data_id = RACE), stackgroups = TRUE, binwidth = 1, method = \"histodot\") +\n  scale_y_continuous(NULL, breaks = NULL)\n\n\ngirafe(                   \n  code = print(p1 + p2),\n  width_svg = 6,        \n  height_svg = 3,\n  options = list(\n    opts_hover(css = \"fill: red;\"),\n    opts_hover_inv(css = \"opacity:0.2;\")))"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-plot_ly",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-plot_ly",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Using plot_ly()",
-    "text": "Using plot_ly()\n\nplot_ly(data = exam_data, \n             x = ~MATHS, \n             y = ~ENGLISH,\n            color = ~RACE)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-ggplotly",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#using-ggplotly",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Using ggplotly()",
-    "text": "Using ggplotly()\n\np &lt;- ggplot(data=exam_data, aes(x = MATHS, y = ENGLISH)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100),ylim=c(0,100))\nggplotly(p)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggplotly",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#coordinated-multiple-views-with-ggplotly",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Coordinated Multiple Views with ggplotly()",
-    "text": "Coordinated Multiple Views with ggplotly()\n\nd &lt;- highlight_key(exam_data)\np1 &lt;- ggplot(data=d, \n            aes(x = MATHS, y = ENGLISH)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\np2 &lt;- ggplot(data=d, \n            aes(x = MATHS, y = SCIENCE)) +\n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\nsubplot(ggplotly(p1),\n        ggplotly(p2))"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#dt-package",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#dt-package",
-    "title": "Hands-on Exercise 3.1",
-    "section": "DT package",
-    "text": "DT package\n\nDT::datatable(exam_data, class= \"compact\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#linked-brushing-crosstalk-method",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-01.html#linked-brushing-crosstalk-method",
-    "title": "Hands-on Exercise 3.1",
-    "section": "Linked brushing: crosstalk method",
-    "text": "Linked brushing: crosstalk method\n\nd &lt;- highlight_key(exam_data) \np &lt;- ggplot(d, aes(ENGLISH, MATHS)) + \n  geom_point(size=1) +\n  coord_cartesian(xlim=c(0,100), ylim=c(0,100))\n\ngg &lt;- highlight(ggplotly(p),\"plotly_selected\")  \n\ncrosstalk::bscols(gg, DT::datatable(d),widths = 5)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html",
-    "title": "Hands-on Exercise 1",
-    "section": "",
-    "text": "The code chunk below use p_load() of pacman package to check if tidyverse packages are installed in the computer. If they are, then they will be launched into R.\n\npacman::p_load(tidyverse)\n\n\n\n\n\nexam_data &lt;- read_csv(\"data/Exam_data.csv\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#install-and-launching-r-packages",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#install-and-launching-r-packages",
-    "title": "Hands-on Exercise 1",
-    "section": "",
-    "text": "The code chunk below use p_load() of pacman package to check if tidyverse packages are installed in the computer. If they are, then they will be launched into R.\n\npacman::p_load(tidyverse)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#importing-the-data",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#importing-the-data",
-    "title": "Hands-on Exercise 1",
-    "section": "",
-    "text": "exam_data &lt;- read_csv(\"data/Exam_data.csv\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#essential-grammatical-elements-in-ggplot2",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#essential-grammatical-elements-in-ggplot2",
-    "title": "Hands-on Exercise 1",
-    "section": "Essential Grammatical Elements in ggplot2:",
-    "text": "Essential Grammatical Elements in ggplot2:\n\nggplot(data = exam_data)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#essential-grammatical-elements-in-ggplot2-1",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#essential-grammatical-elements-in-ggplot2-1",
-    "title": "Hands-on Exercise 1",
-    "section": "Essential Grammatical Elements in ggplot2",
-    "text": "Essential Grammatical Elements in ggplot2\n\nggplot(data=exam_data, aes(x=MATHS))"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_bar",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_bar",
-    "title": "Hands-on Exercise 1",
-    "section": "Geometric Objects: geom_bar",
-    "text": "Geometric Objects: geom_bar\n\nggplot(data=exam_data, aes(x=CLASS)) + geom_bar()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_dotplot",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_dotplot",
-    "title": "Hands-on Exercise 1",
-    "section": "Geometric Objects: geom_dotplot",
-    "text": "Geometric Objects: geom_dotplot\n\nggplot(data=exam_data, \n       aes(x = MATHS)) +\n  geom_dotplot(dotsize = 0.5) + scale_y_continuous(NULL, breaks = NULL)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_histogram",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_histogram",
-    "title": "Hands-on Exercise 1",
-    "section": "Geometric Objects: geom_histogram()",
-    "text": "Geometric Objects: geom_histogram()\n\nggplot(data=exam_data, \n       aes(x = MATHS)) +\n  geom_histogram()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#modifying-a-geometric-object-by-changing-geom",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#modifying-a-geometric-object-by-changing-geom",
-    "title": "Hands-on Exercise 1",
-    "section": "Modifying a geometric object by changing geom()",
-    "text": "Modifying a geometric object by changing geom()\n\nggplot(data=exam_data, \n       aes(x= MATHS)) +\n  geom_histogram(bins=20,            \n                 color=\"black\",      \n                 fill=\"light cyan\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#modifying-a-geometric-object-by-changing-aes",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#modifying-a-geometric-object-by-changing-aes",
-    "title": "Hands-on Exercise 1",
-    "section": "Modifying a geometric object by changing aes()",
-    "text": "Modifying a geometric object by changing aes()\n\nggplot(data=exam_data, \n       aes(x= MATHS, \n           fill = RACE)) +\n  geom_histogram(bins=20, \n                 color=\"grey30\") + scale_fill_manual(values = c(\"Chinese\" = \"red\", \n                               \"Malay\" = \"skyblue\", \n                               \"Indian\" = \"lightgreen\", \n                               \"Others\" = \"purple\"))"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom-density",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom-density",
-    "title": "Hands-on Exercise 1",
-    "section": "Geometric Objects: geom-density()",
-    "text": "Geometric Objects: geom-density()\n\nggplot(data=exam_data, \n       aes(x = ENGLISH)) +\n  geom_density()           \n\n\n\n\n\n\n\n\n\nggplot(data=exam_data, \n       aes(x = ENGLISH, \n           colour = GENDER)) +\n  geom_density()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_boxplot",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_boxplot",
-    "title": "Hands-on Exercise 1",
-    "section": "Geometric Objects: geom_boxplot",
-    "text": "Geometric Objects: geom_boxplot\n\nggplot(data=exam_data, \n       aes(y = MATHS,       \n           x= GENDER)) +    \n  geom_boxplot()            \n\n\n\n\n\n\n\n\n\nggplot(data=exam_data, \n       aes(y = MATHS, \n           x= GENDER)) +\n  geom_boxplot(notch=TRUE)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_violin",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_violin",
-    "title": "Hands-on Exercise 1",
-    "section": "Geometric Objects: geom_violin",
-    "text": "Geometric Objects: geom_violin\n\nggplot(data=exam_data, \n       aes(y = ENGLISH, \n           x= RACE)) +\n  geom_violin()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_point",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geometric-objects-geom_point",
-    "title": "Hands-on Exercise 1",
-    "section": "Geometric Objects: geom_point()",
-    "text": "Geometric Objects: geom_point()\n\nggplot(data=exam_data, \n       aes(x= MATHS, \n           y= SCIENCE)) +\n  geom_point()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geom-objects-can-be-combined",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#geom-objects-can-be-combined",
-    "title": "Hands-on Exercise 1",
-    "section": "geom objects can be combined",
-    "text": "geom objects can be combined\n\nggplot(data=exam_data, \n       aes(y = MATHS, \n           x= RACE)) +\n  geom_boxplot() +                    \n  geom_point(position=\"jitter\", \n             size = 0.5)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-stat---the-stat_summary-method",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-stat---the-stat_summary-method",
-    "title": "Hands-on Exercise 1",
-    "section": "Working with stat() - the stat_summary() method",
-    "text": "Working with stat() - the stat_summary() method\n\nggplot(data=exam_data, \n       aes(y = MATHS, x= GENDER)) +\n  geom_boxplot() +\n  stat_summary(geom = \"point\",      \n               fun = \"mean\",        \n               colour =\"red\",       \n               size=4)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-stat---the-geom-method",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-stat---the-geom-method",
-    "title": "Hands-on Exercise 1",
-    "section": "Working with stat - the geom() method",
-    "text": "Working with stat - the geom() method\n\nggplot(data=exam_data, \n       aes(y = MATHS, x= GENDER)) +\n  geom_boxplot() +\n  geom_point(stat=\"summary\",        \n             fun=\"mean\",           \n             colour=\"red\",          \n             size=4)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#adding-a-best-fit-curve-on-a-scatterplot",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#adding-a-best-fit-curve-on-a-scatterplot",
-    "title": "Hands-on Exercise 1",
-    "section": "Adding a best fit curve on a scatterplot",
-    "text": "Adding a best fit curve on a scatterplot\n\nggplot(data=exam_data, \n       aes(x= MATHS, y=ENGLISH)) +\n  geom_point() +\n  geom_smooth(method = lm, linewidth=0.5)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-facet_wrap",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-facet_wrap",
-    "title": "Hands-on Exercise 1",
-    "section": "Working with facet_wrap()",
-    "text": "Working with facet_wrap()\n\nggplot(data=exam_data, aes(x=ENGLISH)) + geom_histogram(bins = 20) + facet_wrap(~ CLASS)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#facet_grid-function",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#facet_grid-function",
-    "title": "Hands-on Exercise 1",
-    "section": "facet_grid() function",
-    "text": "facet_grid() function\n\nggplot(data=exam_data, \n       aes(x= MATHS)) +\n  geom_histogram(bins=20) +\n    facet_grid(~ CLASS)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-coordinate",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-coordinate",
-    "title": "Hands-on Exercise 1",
-    "section": "Working with Coordinate",
-    "text": "Working with Coordinate\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() + coord_flip()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#changing-the-y--and-x-axis-range",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#changing-the-y--and-x-axis-range",
-    "title": "Hands-on Exercise 1",
-    "section": "Changing the y- and x-axis range",
-    "text": "Changing the y- and x-axis range\n\nggplot(data=exam_data, \n       aes(x= MATHS, y=ENGLISH)) +\n  geom_point() +\n  geom_smooth(method=lm, \n              size=0.5) +  \n  coord_cartesian(xlim=c(0,100),\n                  ylim=c(0,100))"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-theme",
-    "href": "Hands-on_Ex/Hands-on_Ex01/Hands-on_Ex01.html#working-with-theme",
-    "title": "Hands-on Exercise 1",
-    "section": "Working with theme",
-    "text": "Working with theme\nUsing theme_classic()\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_classic()\n\n\n\n\n\n\n\n\nUsing theme_minimal()\n\nggplot(data=exam_data, \n       aes(x=RACE)) +\n  geom_bar() +\n  coord_flip() +\n  theme_minimal()"
-  },
-  {
-    "objectID": "about.html",
-    "href": "about.html",
-    "title": "About",
-    "section": "",
-    "text": "About this site\n\n1 + 1\n\n[1] 2"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html",
-    "title": "Hands-on Exercise 2",
-    "section": "",
-    "text": "pacman::p_load(ggrepel, patchwork, ggthemes, hrbrthemes, tidyverse)\n\n\n\n\nexam_data &lt;- read.csv(\"Exam_data.csv\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#importing-data",
-    "title": "Hands-on Exercise 2",
-    "section": "",
-    "text": "exam_data &lt;- read.csv(\"Exam_data.csv\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-without-ggrepel",
-    "title": "Hands-on Exercise 2",
-    "section": "Working without ggrepel",
-    "text": "Working without ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label(aes(label = ID), hjust = .5, vjust = -.5) + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggrepel",
-    "title": "Hands-on Exercise 2",
-    "section": "Working with ggrepel",
-    "text": "Working with ggrepel\n\nggplot(data=exam_data, aes(x= MATHS, y=ENGLISH)) + geom_point() + geom_smooth(method = lm, size=0.5) + geom_label_repel(aes(label = ID), fontface = \"bold\") + coord_cartesian(xlim = c(0,100), ylim = c(0,100)) + ggtitle(\"English Scores Vs Maths Scores for Primary 3\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#using-ggplot2-themes",
-    "title": "Hands-on Exercise 2",
-    "section": "Using ggplot2 themes",
-    "text": "Using ggplot2 themes\n\nggplot(data=exam_data, aes(x=MATHS)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill = \"grey90\") + theme_linedraw() + ggtitle(\"Distribution of Maths scores\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-ggtheme-package",
-    "title": "Hands-on Exercise 2",
-    "section": "Working with ggtheme package",
-    "text": "Working with ggtheme package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_solarized()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#working-with-hrbthemes-package",
-    "title": "Hands-on Exercise 2",
-    "section": "Working with hrbthemes package",
-    "text": "Working with hrbthemes package\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter()\n\n\n\n\n\n\n\n\n\nggplot(data=exam_data,\n       aes(x=ENGLISH)) + geom_histogram(bins = 20, boundary = 100, color = \"grey25\", fill= \"grey90\")+ ggtitle(\"Distribution of English Scores\") + theme_ipsum_inter(axis_title_size = 18, base_size = 15, grid = \"Y\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
-    "href": "Hands-on_Ex/Hands-on_Ex02/Hands-on_Ex02.html#creating-composite-graphics-pathwork-methods",
-    "title": "Hands-on Exercise 2",
-    "section": "Creating Composite Graphics: pathwork methods",
-    "text": "Creating Composite Graphics: pathwork methods\n\nTow-Column layout can use Plus Sign +\nParenthesis () are used to create subplot group\nTwo-Row layout can use Devision Sign /\n\n\nCombining two ggplot2 graphs\n\np1 + p2\n\n\n\n\n\n\n\n\n\n\nCombining three ggplot2 graphs\n“|” is to place the plots beside each other\n\n(p1 / p2) | p3\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure with tag\n\n((p1 / p2) | p3) + plot_annotation(tag_levels =  'I')\n\n\n\n\n\n\n\n\n\n\nCreating figure with insert\n\np3 + inset_element(p2, left = 0.02, bottom = 0.7, right = 0.5, top = 1)\n\n\n\n\n\n\n\n\n\n\nCreating a composite figure by using patchwork and ggtheme\n\npatchwork &lt;- (p1 / p2) | p3 \npatchwork & theme_economist()"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html",
-    "title": "Hands-on Exercise 3.2",
-    "section": "",
-    "text": "plotly is the R library for plotting interactive statistical graphs.\ngganimate is a ggplot extension for creating animated stastical graphs.\ngifski converts video frames to GIF animations using pngquant’s fancy features for efficient cross-frame palettes and temporal dithering. It produces animated GIFs that use thousands of colors per frame.\ngapminder is an excerpt of the data available at Gapminder.org. We just want to use its country_colors scheme."
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-a-static-population-bubble-plot",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-a-static-population-bubble-plot",
-    "title": "Hands-on Exercise 3.2",
-    "section": "Building a static population bubble plot",
-    "text": "Building a static population bubble plot\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young')"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-the-animated-bubble-plot",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-the-animated-bubble-plot",
-    "title": "Hands-on Exercise 3.2",
-    "section": "Building the animated bubble plot",
-    "text": "Building the animated bubble plot\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young') +\n  transition_time(Year) +\n  ease_aes('linear')\n\n\n\n\n\n\n\n\n\nUsing other gganimate\n\nggplot(globalPop, aes(x = Old, y = Young, size = Population, colour = Country)) +\n  geom_point(alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(title = 'Year: {frame_time}', x = '% Aged', y = '% Young') +\n  transition_time(Year) +\nview_follow(fixed_x = TRUE, fixed_y = TRUE) +\nshadow_trail(0.1) +\nenter_grow() +\nexit_shrink() +\nease_aes(\"sine-in-out\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-ggplotly-method",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-ggplotly-method",
-    "title": "Hands-on Exercise 3.2",
-    "section": "Building an animated bubble plot: ggplotly() method",
-    "text": "Building an animated bubble plot: ggplotly() method\n\ngg &lt;- ggplot(globalPop, \n       aes(x = Old,y = Young, size = Population, colour = Country)) +\n  geom_point(aes(size = Population, frame = Year), alpha = 0.7, show.legend = FALSE) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(x = '% Aged', y = '% Young')\n\nggplotly(gg)\n\n\n\n\n\n\ngg &lt;- ggplot(globalPop, \n       aes(x = Old,y = Young, size = Population, colour = Country)) +\n  geom_point(aes(size = Population, frame = Year), alpha = 0.7) +\n  scale_colour_manual(values = country_colors) +\n  scale_size(range = c(2, 12)) +\n  labs(x = '% Aged', y = '% Young') + \n  theme(legend.position = 'none')\n\nggplotly(gg)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-plot_ly-method",
-    "href": "Hands-on_Ex/Hands-on_Ex03/Hands-on_Ex03-02.html#building-an-animated-bubble-plot-plot_ly-method",
-    "title": "Hands-on Exercise 3.2",
-    "section": "Building an animated bubble plot: plot_ly() method",
-    "text": "Building an animated bubble plot: plot_ly() method\n\nbp &lt;- globalPop %&gt;%\n  plot_ly(x = ~Old, y = ~Young, size = ~Population, color = ~Continent, sizes = c(2, 100), frame = ~Year, text = ~Country, hoverinfo = \"text\", type = 'scatter', mode = 'markers') %&gt;%\n  \n  layout(showlegend = FALSE)\nbp"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html",
-    "title": "Hand-on Exercise 4.2",
-    "section": "",
-    "text": "pacman::p_load(ggstatsplot, tidyverse)\n\n\n\n\n\nexam &lt;- read_csv(\"data/Exam_data.csv\")\n\n\n\n\n\nset.seed(1234)\n\ngghistostats(\n  data = exam,\n  x = ENGLISH,\n  type = \"bayes\",\n  test.value = 60,\n  xlab = \"English scores\"\n)\n\n\n\n\n\n\n\n\n\n\n\n\nggbetweenstats(\n  data = exam,\n  x = GENDER, \n  y = MATHS,\n  type = \"np\",\n  messages = FALSE\n)\n\n\n\n\n\n\n\n\n\n\n\n\nggbetweenstats(\n  data = exam,\n  x = RACE, \n  y = ENGLISH,\n  type = \"p\",\n  mean.ci = TRUE, \n  pairwise.comparisons = TRUE, \n  pairwise.display = \"s\",\n  p.adjust.method = \"fdr\",\n  messages = FALSE\n)\n\n\n\n\n\n\n\n\n\n\n\n\nggscatterstats(\n  data = exam,\n  x = MATHS,\n  y = ENGLISH,\n  marginal = FALSE,\n  )\n\n\n\n\n\n\n\n\n\n\n\n\nexam1 &lt;- exam %&gt;% \n  mutate(MATHS_bins = \n           cut(MATHS, \n               breaks = c(0,60,75,85,100))\n)\n\nIn this code chunk below ggbarstats() is used to build a visual for Significant Test of Association\n\nggbarstats(exam1, \n           x = MATHS_bins, \n           y = GENDER)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#installing-and-launching-r-packages",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#installing-and-launching-r-packages",
-    "title": "Hand-on Exercise 4.2",
-    "section": "",
-    "text": "pacman::p_load(ggstatsplot, tidyverse)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#importing-data",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#importing-data",
-    "title": "Hand-on Exercise 4.2",
-    "section": "",
-    "text": "exam &lt;- read_csv(\"data/Exam_data.csv\")"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#one-sample-test-gghistostats-method",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#one-sample-test-gghistostats-method",
-    "title": "Hand-on Exercise 4.2",
-    "section": "",
-    "text": "set.seed(1234)\n\ngghistostats(\n  data = exam,\n  x = ENGLISH,\n  type = \"bayes\",\n  test.value = 60,\n  xlab = \"English scores\"\n)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#two-sample-mean-test-ggbetweenstats",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#two-sample-mean-test-ggbetweenstats",
-    "title": "Hand-on Exercise 4.2",
-    "section": "",
-    "text": "ggbetweenstats(\n  data = exam,\n  x = GENDER, \n  y = MATHS,\n  type = \"np\",\n  messages = FALSE\n)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#oneway-anova-test-ggbetweenstats-method",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#oneway-anova-test-ggbetweenstats-method",
-    "title": "Hand-on Exercise 4.2",
-    "section": "",
-    "text": "ggbetweenstats(\n  data = exam,\n  x = RACE, \n  y = ENGLISH,\n  type = \"p\",\n  mean.ci = TRUE, \n  pairwise.comparisons = TRUE, \n  pairwise.display = \"s\",\n  p.adjust.method = \"fdr\",\n  messages = FALSE\n)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#significant-test-of-correlation-ggscatterstats",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#significant-test-of-correlation-ggscatterstats",
-    "title": "Hand-on Exercise 4.2",
-    "section": "",
-    "text": "ggscatterstats(\n  data = exam,\n  x = MATHS,\n  y = ENGLISH,\n  marginal = FALSE,\n  )"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#significant-test-of-association-depedence-ggbarstats-methods",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-02.html#significant-test-of-association-depedence-ggbarstats-methods",
-    "title": "Hand-on Exercise 4.2",
-    "section": "",
-    "text": "exam1 &lt;- exam %&gt;% \n  mutate(MATHS_bins = \n           cut(MATHS, \n               breaks = c(0,60,75,85,100))\n)\n\nIn this code chunk below ggbarstats() is used to build a visual for Significant Test of Association\n\nggbarstats(exam1, \n           x = MATHS_bins, \n           y = GENDER)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html",
-    "title": "Hands-on Exercise 4.4",
-    "section": "",
-    "text": "plotting funnel plots by using funnelPlotR package,\nplotting static funnel plot by using ggplot2 package, and\nplotting interactive funnel plot by using both plotly R and ggplot2 packages.\n\n\n\n\n\nreadr for importing csv into R.\nFunnelPlotR for creating funnel plot.\nggplot2 for creating funnel plot manually.\nknitr for building static html table.\nplotly for creating interactive funnel plot.\n\n\npacman::p_load(tidyverse, FunnelPlotR, plotly, knitr)\n\n\n\n\n\ncovid19 &lt;- read_csv(\"data/COVID-19_DKI_Jakarta.csv\") %&gt;%\n  mutate_if(is.character, as.factor)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#overview",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#overview",
-    "title": "Hands-on Exercise 4.4",
-    "section": "",
-    "text": "plotting funnel plots by using funnelPlotR package,\nplotting static funnel plot by using ggplot2 package, and\nplotting interactive funnel plot by using both plotly R and ggplot2 packages."
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#installing-and-launching-r-packages",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#installing-and-launching-r-packages",
-    "title": "Hands-on Exercise 4.4",
-    "section": "",
-    "text": "readr for importing csv into R.\nFunnelPlotR for creating funnel plot.\nggplot2 for creating funnel plot manually.\nknitr for building static html table.\nplotly for creating interactive funnel plot.\n\n\npacman::p_load(tidyverse, FunnelPlotR, plotly, knitr)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#importing-data",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#importing-data",
-    "title": "Hands-on Exercise 4.4",
-    "section": "",
-    "text": "covid19 &lt;- read_csv(\"data/COVID-19_DKI_Jakarta.csv\") %&gt;%\n  mutate_if(is.character, as.factor)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-the-basic-plot",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-the-basic-plot",
-    "title": "Hands-on Exercise 4.4",
-    "section": "FunnelPlotR methods: The basic plot",
-    "text": "FunnelPlotR methods: The basic plot\n\nfunnel_plot(\n  .data = covid19,\n  numerator = Positive,\n  denominator = Death,\n  group = `Sub-district`\n)\n\n\n\n\n\n\n\n\nA funnel plot object with 267 points of which 0 are outliers. \nPlot is adjusted for overdispersion."
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-makeover-1",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-makeover-1",
-    "title": "Hands-on Exercise 4.4",
-    "section": "FunnelPlotR methods: Makeover 1",
-    "text": "FunnelPlotR methods: Makeover 1\n\nfunnel_plot(\n  .data = covid19,\n  numerator = Death,\n  denominator = Positive,\n  group = `Sub-district`,\n  data_type = \"PR\",     #&lt;&lt;\n  xrange = c(0, 6500),  #&lt;&lt;\n  yrange = c(0, 0.05)   #&lt;&lt;\n)\n\n\n\n\n\n\n\n\nA funnel plot object with 267 points of which 7 are outliers. \nPlot is adjusted for overdispersion."
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-makeover-2",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#funnelplotr-methods-makeover-2",
-    "title": "Hands-on Exercise 4.4",
-    "section": "FunnelPlotR methods: Makeover 2",
-    "text": "FunnelPlotR methods: Makeover 2\n\nfunnel_plot(\n  .data = covid19,\n  numerator = Death,\n  denominator = Positive,\n  group = `Sub-district`,\n  data_type = \"PR\",   \n  xrange = c(0, 6500),  \n  yrange = c(0, 0.05),\n  label = NA,\n  title = \"Cumulative COVID-19 Fatality Rate by Cumulative Total Number of COVID-19 Positive Cases\", #&lt;&lt;           \n  x_label = \"Cumulative COVID-19 Positive Cases\", #&lt;&lt;\n  y_label = \"Cumulative Fatality Rate\"  #&lt;&lt;\n)\n\n\n\n\n\n\n\n\nA funnel plot object with 267 points of which 7 are outliers. \nPlot is adjusted for overdispersion."
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#computing-the-basic-derived-fields",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#computing-the-basic-derived-fields",
-    "title": "Hands-on Exercise 4.4",
-    "section": "Computing the basic derived fields",
-    "text": "Computing the basic derived fields\n\ndf &lt;- covid19 %&gt;%\n  mutate(rate = Death / Positive) %&gt;%\n  mutate(rate.se = sqrt((rate*(1-rate)) / (Positive))) %&gt;%\n  filter(rate &gt; 0)\n\n\nfit.mean &lt;- weighted.mean(df$rate, 1/df$rate.se^2)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#calculate-lower-and-upper-limits-for-95-and-99.9-ci",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#calculate-lower-and-upper-limits-for-95-and-99.9-ci",
-    "title": "Hands-on Exercise 4.4",
-    "section": "Calculate lower and upper limits for 95% and 99.9% CI",
-    "text": "Calculate lower and upper limits for 95% and 99.9% CI\n\nnumber.seq &lt;- seq(1, max(df$Positive), 1)\nnumber.ll95 &lt;- fit.mean - 1.96 * sqrt((fit.mean*(1-fit.mean)) / (number.seq)) \nnumber.ul95 &lt;- fit.mean + 1.96 * sqrt((fit.mean*(1-fit.mean)) / (number.seq)) \nnumber.ll999 &lt;- fit.mean - 3.29 * sqrt((fit.mean*(1-fit.mean)) / (number.seq)) \nnumber.ul999 &lt;- fit.mean + 3.29 * sqrt((fit.mean*(1-fit.mean)) / (number.seq)) \ndfCI &lt;- data.frame(number.ll95, number.ul95, number.ll999, \n                   number.ul999, number.seq, fit.mean)"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#plotting-a-static-funnel-plot",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#plotting-a-static-funnel-plot",
-    "title": "Hands-on Exercise 4.4",
-    "section": "Plotting a static funnel plot",
-    "text": "Plotting a static funnel plot\n\np &lt;- ggplot(df, aes(x = Positive, y = rate)) +\n  geom_point(aes(label=`Sub-district`), \n             alpha=0.4) +\n  geom_line(data = dfCI, \n            aes(x = number.seq, \n                y = number.ll95), \n            size = 0.4, \n            colour = \"grey40\", \n            linetype = \"dashed\") +\n  geom_line(data = dfCI, \n            aes(x = number.seq, \n                y = number.ul95), \n            size = 0.4, \n            colour = \"grey40\", \n            linetype = \"dashed\") +\n  geom_line(data = dfCI, \n            aes(x = number.seq, \n                y = number.ll999), \n            size = 0.4, \n            colour = \"grey40\") +\n  geom_line(data = dfCI, \n            aes(x = number.seq, \n                y = number.ul999), \n            size = 0.4, \n            colour = \"grey40\") +\n  geom_hline(data = dfCI, \n             aes(yintercept = fit.mean), \n             size = 0.4, \n             colour = \"grey40\") +\n  coord_cartesian(ylim=c(0,0.05)) +\n  annotate(\"text\", x = 1, y = -0.13, label = \"95%\", size = 3, colour = \"grey40\") + \n  annotate(\"text\", x = 4.5, y = -0.18, label = \"99%\", size = 3, colour = \"grey40\") + \n  ggtitle(\"Cumulative Fatality Rate by Cumulative Number of COVID-19 Cases\") +\n  xlab(\"Cumulative Number of COVID-19 Cases\") + \n  ylab(\"Cumulative Fatality Rate\") +\n  theme_light() +\n  theme(plot.title = element_text(size=12),\n        legend.position = c(0.91,0.85), \n        legend.title = element_text(size=7),\n        legend.text = element_text(size=7),\n        legend.background = element_rect(colour = \"grey60\", linetype = \"dotted\"),\n        legend.key.height = unit(0.3, \"cm\"))\np"
-  },
-  {
-    "objectID": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#interactive-funnel-plot-plotly-ggplot2",
-    "href": "Hands-on_Ex/Hands-on_Ex04/Hands-on_Ex04-04.html#interactive-funnel-plot-plotly-ggplot2",
-    "title": "Hands-on Exercise 4.4",
-    "section": "Interactive Funnel Plot: plotly + ggplot2",
-    "text": "Interactive Funnel Plot: plotly + ggplot2\n\nfp_ggplotly &lt;- ggplotly(p,\n  tooltip = c(\"label\", \n              \"x\", \n              \"y\"))\nfp_ggplotly"
-  },
-  {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "ISSS608-VAA-Min",
-    "section": "",
-    "text": "Welcome to ISSS608 Visual Analytics and Application. In this website, you will find my coursework prepared for this course."
+    "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#original-visualization",
+    "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#original-visualization",
+    "title": "Take-home_Ex01",
+    "section": "5 Original Visualization",
+    "text": "5 Original Visualization\n\n\n\n\n\n\nJustification\n\n\n\nI decided to criticize the original chart because it only shows how many older people live in each planning area, which isn’t very representative of the whole population. It’s helpful for identifying regions with a higher proportion of senior citizens, but it doesn’t show how the elderly population stacks up against other age groups, such as children or working adults. It’s challenging to completely comprehend the population structure and make appropriate plans for things like employment, education, and elder care without that background. By highlighting this, I would like to highlight the importance of displaying various age groups together in order to provide a clearer, more comprehensive view of the community.\n\n\nMy peer’s work: Link to my peer work\n\ntotal_area &lt;- sg_res %&gt;%\n  group_by(PA) %&gt;%\n  summarise(total = sum(Pop), .groups = \"drop\")\n\nelderly &lt;- sg_res %&gt;%\n  filter(Age &gt;= 65, !is.na(PA), !is.na(Pop))\n\nelderly_area &lt;- elderly %&gt;%\n  group_by(PA) %&gt;%\n  summarise(elderly = sum(Pop), .groups = \"drop\")\n\naging_ratio &lt;- left_join(total_area, elderly_area, by = \"PA\") %&gt;%\n  filter(total &gt; 0) %&gt;%\n  mutate(elderly = replace_na(elderly, 0),\n         aging_percentage = elderly / total)\n\n\nggplot(aging_ratio, aes(x = reorder(PA, aging_percentage), \n                        y = aging_percentage)) +\n  geom_col(fill = \"lightpink\") +\n  coord_flip() +\n  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +\n  labs(\n    title = \"Proportion of Elderly (65+) by Planning Area\",\n    x = \"Planning Area\",\n    y = \"Elderly Proportion\"\n  ) +\n  theme_minimal(base_size = 12) +\n    theme(axis.text.y = element_text(size = 13),\n          axis.text.x = element_text(size = 13),\n    plot.title = element_text(size = 25, face = \"bold\",\n                              hjust =0.5),\n    plot.margin = margin(10, 20, 10, 10))\n\n\n\n\n\n\n\n\n\n5.1 Good Points of the Visualization\n\n\n\n\n\n\nGood Points of the Visualization\n\n\n\n\nClear Sorting for Comparison\n\nThe planning areas are sorted in descending order of elderly proportion, which helps the viewer quickly identify the areas with the highest elderly population share.\nSorting enhances readability and supports effective ranking-based insights.\n\nSimple and Clean Design\n\nThe chart uses a horizontal bar layout with clean axis labels and a minimal theme.\nThis layout makes it easy to read long planning area names and compare bar lengths visually.\n\nFocused Message\n\nThe title, “Proportion of Elderly (65+) by Planning Area,” is specific and directly tells the viewer what to focus on.\nThe single-variable focus avoids visual clutter and keeps the viewer’s attention on a key demographic issue.\n\n\n\n\n\n\n5.2 Areas for Further Improvement\n\n\n\n\n\n\nAreas for Further Improvement\n\n\n\n\nLack of Context from Other Age Groups\n\nThe chart shows only the elderly proportion, which may mislead viewers if other age groups are significant in total composition.\nThere’s no insight into whether the area also has many children or working adults — a stacked comparison could give more complete demographic context.\n\nMissing Data Labels\n\nThe chart does not show the actual percentage values on the bars, requiring viewers to estimate from the axis grid.\nAdding data labels (e.g., “23.5%”) improves precision and saves interpretation time.\n\nNarrow Insights\n\nThe chart focuses only on elderly population, omitting inter-generational demographic dynamics.\nIt tells us where elderly are concentrated, but not whether it’s due to lower children population or actual elderly concentration.\n\n\n\n\n\n\n5.3 Makeover Version of the Data Visualization\n\nsg_age_grouped &lt;- sg_res %&gt;%\n  mutate(age_group = case_when(\n    Age &gt;= 65 ~ \"Elderly (65+)\",\n    Age &gt;= 18 ~ \"Working Adults (18-64)\",\n    TRUE ~ \"Children (0-17)\"\n  ))\n\n\npop_by_group &lt;- sg_age_grouped %&gt;%\n  group_by(PA, age_group) %&gt;%\n  summarise(Pop = sum(Pop), .groups = \"drop\")\n\n\npop_percent &lt;- pop_by_group %&gt;%\n  group_by(PA) %&gt;%\n  mutate(total = sum(Pop),\n         percent = Pop / total) %&gt;%\n  ungroup() %&gt;%\n  filter(total &gt; 0) \n\n\nelderly_percent &lt;- pop_percent %&gt;%\n  filter(age_group == \"Elderly (65+)\") %&gt;%\n  select(PA, elderly_percent = percent)\n\n\npop_percent &lt;- left_join(pop_percent, elderly_percent, by = \"PA\") %&gt;%\n  mutate(\n    PA = fct_reorder(PA, +elderly_percent),\n    percent_label = paste0(round(percent * 100, 1), \"%\")\n  )\n\npop_percent$age_group &lt;- factor(pop_percent$age_group,\n                                levels = c(\"Children (0-17)\", \"Working Adults (18-64)\", \"Elderly (65+)\"))\n\n\nggplot(pop_percent, aes(x = PA, y = percent, fill = age_group)) +\n  geom_col() +\n  geom_text(aes(label = percent_label),\n            position = position_stack(vjust = 0.5),\n            size = 5, color = \"black\") +\n  scale_y_continuous(labels = percent_format(accuracy = 1)) +\n  scale_fill_manual(values = c(\"Elderly (65+)\" = \"#b2df8a\",\n                               \"Working Adults (18-64)\" = \"#6baed6\",\n                               \"Children (0-17)\" = \"#a6cee3\")) +\n  coord_flip() +\n  labs(\n    title = \"Age Group Composition by Planning Area (Sorted by Elderly %)\",\n    x = \"Planning Area\",\n    y = \"Percentage\",\n    fill = \"Age Group\"\n  ) +\n  theme_minimal(base_size = 12) +\n  theme(axis.text.y = element_text(size = 15),\n          axis.text.x = element_text(size = 15),\n        axis.title.x = element_text(size = 20),\n        axis.title.y = element_text(size = 20),\n        legend.title = element_text(size = 20),\n  legend.text = element_text(size = 15),\n    plot.title = element_text(size = 25, face = \"bold\",\n                              hjust =0.5),\n    plot.margin = margin(10, 20, 10, 10))\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nImprovements\n\n\n\n\nAdds Complete Age Context\n\nInstead of showing only elderly proportion, this stacked bar chart displays Children, Working Adults, and Elderly, giving a holistic view of age distribution across planning areas.\n\nSorts by Elderly Proportion\n\nPlanning areas are ordered by increasing elderly percentage, making it easy to visually compare which areas are “older” in terms of demographic weight.\n\nShows Data Labels\n\nEach bar segment includes a percentage label, improving accuracy and interpretability without requiring the viewer to estimate from the axis.\n\n\n\n\n\n\n\n\n\n\nAdvantages\n\n\n\n\nContextual Insight: You can immediately compare not just who has the most elderly, but how balanced or skewed each area’s population is across age groups.\nEffective Communication: Better typography and labels make the visualization suitable for reports or presentations to decision-makers."
   }
 ]
