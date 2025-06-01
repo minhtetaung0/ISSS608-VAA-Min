@@ -1,10 +1,13 @@
 ---
-title: "MC1"
+title: "Take-home Exercise 02"
 author: "Min Htet Aung"
 description: "This is the Take-home Exercise 2" 
 date: "May 15, 2025"
 date-modified: "last-modified"
-format: html
+format: 
+  html:
+    code-fold: true
+    code-summary: "Show the code"
 editor: visual
 execute: 
   eval: true
@@ -13,168 +16,795 @@ execute:
   freeze: true
 ---
 
-# Loading Packages
+# 1. Overview
+
+This case from the [***VAST Challenge 2025 Mini-Challenge 1***](https://vast-challenge.github.io/2025/MC1.html) looks at the growth of Sailor Shift, a global music legend who began her career in the Oceanus Folk genre. Sailor has been essential in bringing Oceanus Folk to a global audience since her early days with the band Ivy Echoes and her 2028 viral breakthrough. Her frequent solo releases, cross-genre partnerships, and encouragement of emerging artists have increased the genre's visibility and brought the island nation of Oceanus to the notice of the world.
+
+## 1.1. The Task
+
+The task is to analyze a knowledge graph of artists, songs, albums, and influences to uncover insights about Sailor Shift’s career, the evolution of Oceanus Folk, and the genre’s broader impact. This includes identifying the traits of rising stars, visualizing the career paths of three artists for comparison, and predicting the next wave of Oceanus Folk talent over the next five years.
+
+## 1.2. Loading Packages
+
+| Packages | Purpose |
+|--------------------|----------------------------------------------------|
+| `tidyverse` | Core data manipulation and visualization tools (`dplyr`, `ggplot2`, `tibble`, etc.). |
+| `jsonlite` | Reads the JSON file into a structured R format for further processing. |
+| `SmartEDA` | Automates exploratory data analysis (EDA), summaries, and profiling. |
+| `tidygraph` | Enables graph/network operations using tidy data principles. |
+| `ggraph` | Visualization extension for `tidygraph`, helps draw static network diagrams with `ggplot2`. |
+| `igraph` | Low-level graph manipulation and analysis (e.g., neighbors, components, layout). |
+| `lubridate` | Easy handling and manipulation of date/time data. |
+| `janitor` | Cleans messy column names and tabular data efficiently. |
+| `ggthemes` | Offers extra themes and styles for `ggplot2` visualizations. |
+| `plotly` | Creates interactive plots from `ggplot2` (like tooltips in heatmaps and PCA plots). |
+| `DT` | Creates interactive HTML data tables for viewing in RMarkdown or Shiny. |
+| `ggfortify` | Helps plot PCA and clustering results directly from `prcomp` and `kmeans`. |
+| `visNetwork` | Builds interactive network graphs (like EGO networks) in HTML widgets. |
+| `factoextra` | Enhances visualization and interpretation of multivariate results (PCA, clustering). |
+| `FactoMineR` | Performs multivariate analysis like PCA, MCA, CA—underlying support for `factoextra`. |
+| `fmsb` | Creates radar/spider charts—used to compare rising star profiles visually. |
 
 ```{r}
-pacman::p_load(tidyverse, jsonlite,SmartEDA, tidygraph,ggraph,igraph)
+pacman::p_load(tidyverse, jsonlite, SmartEDA, tidygraph, ggraph, igraph, lubridate, janitor, ggthemes, plotly, DT, ggfortify, visNetwork, factoextra, FactoMineR, fmsb)
 ```
 
-# Reading jason file
+## 1.3. Reading jason file
+
+This step reads the knowledge graph data from the JSON file (`MC1_graph.json`) into R as a structured list object for further processing.
 
 ```{r}
 kg <- fromJSON("data/MC1_graph.json")
 ```
 
-# Inspect structure
+## 1.4. Inspect structure
+
+This step inspects the high-level structure of the imported JSON object, revealing it contains metadata (`directed`, `multigraph`), graph-level details, and two main components: a ***nodes table with 17,412 entries*** and a ***links (edges) table with 37,857 connections**.*
 
 ```{r}
 str(kg,max.level = 1)
 ```
 
-## Convert JSON to DataFrames
+# 2. Initial Data Cleaning and Wrangling
+
+This section converts the JSON data into tidy data frames for nodes and edges, cleans column names, inspects the data structure, and ensures that date fields (like release dates) are properly formatted for analysis.
+
+## 2.1. Convert JSON to DataFrames
+
+This step extracts the `nodes` and `links` components from the ***JSON object*** and converts them into separate tibble data frames (`nodes_tbl` and `edges_tbl`) for easier manipulation and analysis.
 
 ```{r}
 nodes_tbl <- as_tibble(kg$nodes)
 edges_tbl <- as_tibble(kg$links)
 ```
 
-## Explore and Clean the Data
+## 2.2. Explore and Clean the Data
+
+This step provides an overview of the structure and contents of the nodes and edges data frames, showing that the dataset includes ***17,412 nodes*** (e.g., songs, people, albums) with attributes like genre and release date, and ***37,857 edges*** representing various relationships such as collaborations or influences.
 
 ```{r}
 glimpse(nodes_tbl)
 glimpse(edges_tbl)
 ```
 
-## Map Node IDs to Index for Graph Conversion
+## 2.3. Clean and Inspect
+
+This step standardizes the column names in both the nodes and edges tables using `clean_names()` to ensure consistent, analysis-friendly formatting for downstream processing.
 
 ```{r}
-id_map <- tibble(id = nodes_tbl$id, index = seq_len(nrow(nodes_tbl)))
-
-edges_tbl <- edges_tbl %>%
-  left_join(id_map, by = c("source" = "id")) %>%
-  rename(from = index) %>%
-  left_join(id_map, by = c("target" = "id")) %>%
-  rename(to = index) %>%
-  filter(!is.na(from), !is.na(to))
+nodes_tbl <- clean_names(nodes_tbl)
+edges_tbl <- clean_names(edges_tbl)
 ```
 
-## Initial EDA
+## 2.4. Convert Dates
 
-### Count of Edge Types
+This step converts the `release_date` column in the nodes table from character to integer format, allowing for proper chronological analysis and visualization.
 
 ```{r}
-ggplot(data = edges_tbl,
-       aes(y = `Edge Type`)) +
-  geom_bar()
+nodes_tbl <- nodes_tbl %>%
+  mutate(release_date = as.integer(release_date))
 ```
 
-### Count of Node Types
+# 3. Initial EDA
+
+This section conducts initial exploratory data analysis (EDA) to understand the structure and distribution of the dataset, including the types and frequencies of nodes and edges, genre trends over time, and the presence of notable songs.
+
+## 3.1. Count of Edge Types
+
+This bar chart visualizes the frequency of different edge types in the music knowledge graph, representing the types of relationships between entities (e.g., people, songs, albums). The most common connection is `PerformerOf` with ***13,587*** instances, followed by `ComposerOf`, `LyricistOf`, and `RecordedBy`, highlighting the dominant role of performance and creation-related links in the dataset. Less frequent edge types like `MemberOf` and `DirectlySamples` suggest fewer band affiliations or sampling relationships, reflecting how musical influence is more often conveyed through performance and composition.
 
 ```{r}
-ggplot(data = nodes_tbl,
-       aes(y = `Node Type`)) +
-  geom_bar()
+ggplot(data = edges_tbl, aes(y = edge_type)) +
+  geom_bar() +
+  geom_text(stat = 'count', aes(label = ..count..), 
+            hjust = -0.2, color = "black", size = 2) +  # Data labels
+  labs(title = "Distribution of Edge Types",       # Main title
+       subtitle = "Count of different connection types",  # Subtitle
+       y = "Edge Type",                           # Y-axis label
+       x = "Count") +                             # X-axis label
+  theme_minimal() +                               # Clean theme
+  theme(plot.title = element_text(size = 14, face = "bold"),  # Title formatting
+        axis.text.y = element_text(size = 10))
 ```
 
+## 3.2. Count of Node Types
 
+This bar chart illustrates the distribution of different node types in the music knowledge graph. The most prevalent node type is `Person` ***(11,136 entries)***, indicating a strong focus on individual artists, followed by `Song` and `RecordLabel`. Fewer entries for `Album` and `MusicalGroup` suggest that the dataset emphasizes people and their direct musical contributions over collective entities or album-level data. This breakdown helps frame the scope of the dataset and its emphasis on artist-level relationships.
 
-## Creating Knowledge Graph
+```{r}
+ggplot(data = nodes_tbl, aes(y = node_type)) +
+  geom_bar() +
+  geom_text(stat = 'count', aes(label = ..count..), 
+            hjust = -0.2, color = "black", size = 2.5) +  # Data labels
+  labs(title = "Distribution of Node Types",       # Main title
+       subtitle = "Count of different node categories",  # Subtitle
+       y = "Edge Type",                           # Y-axis label
+       x = "Count") +                             # X-axis label
+  theme_minimal() +                               # Clean theme
+  theme(plot.title = element_text(size = 14, face = "bold"),  # Title formatting
+        axis.text.y = element_text(size = 10))
+```
 
-### Step 1: Mapping form node id to row index
+## 3.3. Popularity over Time (by Genre)
 
+This heatmap visualizes the number of song releases over time by genre, capturing the evolution and relative activity across musical styles. Each cell represents the number of songs released in a given year for a specific genre, with darker shades indicating higher counts. The visualization helps identify trends, bursts of activity, and the emergence of genres over decades.
 
-id_map <- tibble(id = nodes_tbl$id, 
-                 index = seq_len(
-                   nrow(nodes_tbl)
-                 ))
+```{r fig.width= 12}
+heatmap_data <- nodes_tbl %>%
+  filter(node_type == "Song", !is.na(release_date)) %>%
+  count(genre, release_date) %>%
+  ungroup() %>%
+  na.omit()
 
+# Create ggplot heatmap
+p <- ggplot(heatmap_data, 
+            aes(x = release_date, 
+                y = fct_rev(fct_infreq(genre)), 
+                fill = n,
+                text = paste0("Genre: ", genre, 
+                              "<br>Release Date: ", release_date, 
+                              "<br>Number of Songs: ", n))) +
+  geom_tile(color = "white", size = 0.1) +
+  theme_tufte(base_family = "Helvetica") +
+  coord_equal() +
+  scale_fill_gradient(name = "# of songs",
+                      low = "sky blue", 
+                      high = "dark blue") +
+  labs(x = NULL, y = NULL, title = "Song Releases Over Time by Genre") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 4, size = 8),
+        axis.text.y = element_text(size = 6),
+        axis.ticks = element_blank(),
+        plot.title = element_text(hjust = 0.5),
+        legend.title = element_text(size = 8),
+        legend.text = element_text(size = 6))
 
-### Step 2 : Map source and target IDs to row indices
+# Convert to interactive plot
+ggplotly(p, tooltip = "text")
 
+```
 
-edges_tbl <- edges_tbl %>%
+::: callout-tip
+### Insights
+
+-   Oceanus Folk shows consistent and increasing activity, especially after 2020, aligning with Sailor Shift’s rise.
+-   Indie Pop and Indie Folk have maintained strong, steady growth, becoming dominant post-2010.
+-   Genres like Dream Pop and Synthwave also show rising popularity after 2015, reflecting global music trends.
+-   Post-2020 shows a broader diversification across niche genres, suggesting increased genre blending and experimentation.
+:::
+
+## 3.4. Notable Songs and Their Genres
+
+This horizontal bar chart displays the number of notable songs categorized by genre, providing insight into which musical styles have had the most significant impact or recognition. The count is derived from songs marked as notable in the dataset, highlighting genres that have produced widely recognized or influential works.
+
+```{r}
+nodes_tbl %>%
+  filter(notable == TRUE & node_type == "Song") %>%
+  count(genre, sort = TRUE) %>%
+  ggplot(aes(x = reorder(genre, n), y = n)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  geom_text(aes(label = n), hjust = -0.1, size = 2.5) +  # Data labels
+  coord_flip() +
+  labs(
+    title = "Count of Notable Songs by Genre",
+    x = "Genre",
+    y = "Number of Notable Songs"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(face = "bold", size = 14, hjust = 0.5),
+    axis.title = element_text(size = 12)
+  ) +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.1)))  # Add space for labels
+```
+
+::: callout-tip
+### Insights
+
+-   Dream Pop leads with 563 notable songs, indicating strong critical or cultural influence.
+-   Indie Folk and Synthwave also have high numbers, showing their sustained popularity.
+-   Oceanus Folk has 179 notable songs, signaling its substantial and growing relevance.
+:::
+
+# 4. Network Analysis and Visualization
+
+This section constructs and explores the music knowledge graph by mapping relationships between artists, songs, albums, and genres. It transforms the cleaned data into a graph structure using node and edge indices, enabling detailed network analysis. These visualizations help reveal collaboration patterns, influence pathways, and the structural role of key artists—particularly in tracing the spread and evolution of Oceanus Folk.
+
+## 4.1. Create Graph Object
+
+This step prepares the data for network analysis by constructing a directed graph object. It begins by mapping node IDs to row indices, then remaps the source and target columns in the edges to match these indices. After filtering out incomplete connections, the cleaned nodes and edges are used to build a `tbl_graph` object, enabling efficient graph operations and visualizations using the `tidygraph` framework.
+
+```{r}
+# Step 1: Create a mapping from node `id` to row index
+id_map <- tibble(id = nodes_tbl$id,
+                 index = seq_len(nrow(nodes_tbl)))
+
+# Step 2: Map `source` and `target` in edges to the correct row index
+edges_tbl_mapped <- edges_tbl %>%
   left_join(id_map, by = c("source" = "id")) %>%
   rename(from = index) %>%
   left_join(id_map, by = c("target" = "id")) %>%
   rename(to = index)
 
+# Step 3: Remove any edges with missing mapped values
+edges_tbl_clean <- edges_tbl_mapped %>%
+  filter(!is.na(from), !is.na(to)) %>%
+  mutate(from = as.integer(from),
+         to = as.integer(to))
 
-### Step 3: filter out any unmatched (invalid) edges
+# Step 4: Ensure the node table is clean
+nodes_tbl_clean <- nodes_tbl %>%
+  mutate(id = as.integer(id)) %>%
+  distinct()
 
+# Step 5: Create the graph object
+graph <- tbl_graph(nodes = nodes_tbl_clean, edges = edges_tbl_clean, directed = TRUE)
+```
 
-edges_tbl <- edges_tbl %>%
-  filter(!is.na(from), !is.na(to))
+## 4.2. Rising Star Profile
 
+This step builds a structured profile for each artist in the graph to identify and compare rising stars in the music industry. It starts by extracting metadata on songs, albums, and people, then maps contribution edges (e.g., PerformerOf, ComposerOf) to link artists to their works. The code calculates key metrics per artist — such as total number of works, notable songs, Oceanus Folk contributions, debut year, and time to achieve notability. It also counts collaborations based on influence-related edges (e.g., CoverOf, InterpolatesFrom).
 
-### step 4: Creating the graph
+Finally, all these attributes are combined into a unified `rising_star_profile` table, which is displayed interactively. This profile helps quantify artistic impact and growth trajectory — laying the foundation for identifying standout talent and predicting future Oceanus Folk stars.
 
+::: callout-note
+### Puropse
 
-graph <- tbl_graph(nodes = nodes_tbl,
-                   edges = edges_tbl,
-                   directed = kg$directed)
+-   To quantify artist trajectories using measurable criteria.
+-   To identify fast-rising, influential artists based on productivity, genre focus, and collaboration.
+-   To support comparative and predictive analysis in later steps of the challenge.
+:::
 
+```{r}
+# Step 1: Extract song/album and person metadata
+songs_albums <- nodes_tbl_clean %>%
+  filter(node_type %in% c("Song", "Album")) %>%
+  select(work_id = id, release_date, genre, notable)
 
-## Visualising the Knowledge graph
+people <- nodes_tbl_clean %>%
+  filter(node_type == "Person") %>%
+  distinct(id, .keep_all = TRUE) %>%
+  select(person_id = id, name)
 
+# Step 2: Edge types
+contribution_types <- c("ComposerOf", "PerformerOf", "ProducerOf", "LyricistOf", "RecordedBy")
+collab_types <- c("LyricalReferenceTo", "CoverOf", "InterpolatesFrom", "DirectlySamples")
 
-set.seed(1234)
+# Step 3: Map contribution edges (index → actual IDs)
+created_links <- edges_tbl_clean %>%
+  filter(edge_type %in% contribution_types) %>%
+  left_join(id_map, by = c("from" = "index")) %>%
+  rename(person_id = id) %>%
+  left_join(id_map, by = c("to" = "index")) %>%
+  rename(work_id = id)
 
+# Step 4: Join to valid song/album metadata
+artist_works <- created_links %>%
+  left_join(songs_albums, by = "work_id") %>%
+  filter(!is.na(release_date))  # exclude dangling works
 
-### Visualising the whole Graph
+# Step 5: Compute profile metrics
+rising_star_profile <- artist_works %>%
+  group_by(person_id) %>%
+  summarise(
+    total_works = n(),
+    notable_works = sum(notable, na.rm = TRUE),
+    oceanus_folk_works = sum(genre == "Oceanus Folk", na.rm = TRUE),
+    first_release = min(as.integer(release_date), na.rm = TRUE),
+    first_notable = if (any(notable == TRUE)) {
+      min(as.integer(release_date[notable == TRUE]), na.rm = TRUE)
+    } else {
+      NA_integer_
+    },
+    .groups = "drop"
+  ) %>%
+  mutate(
+    time_to_notability = ifelse(!is.na(first_notable),
+                                first_notable - first_release, NA)
+  )
 
+# Step 6: Collaboration links mapped
+collaborations <- edges_tbl_clean %>%
+  filter(edge_type %in% collab_types) %>%
+  count(from, name = "collaborations") %>%
+  left_join(id_map, by = c("from" = "index")) %>%
+  rename(person_id = id)
 
-#| eval: false
-ggraph(graph, layout = "fr") + 
-  geom_edge_link(alpha = 0.3,
-                 colour = "gray") +
-  geom_node_point(aes(color = `Node Type`),
-                  size = 4) +
-  geom_node_text(aes(label = name),
-                 repel = TRUE,
-                 size = 2.5) +
-  theme_void()
+# Step 7: Add collaborations to profile
+rising_star_profile <- rising_star_profile %>%
+  left_join(collaborations, by = "person_id") %>%
+  mutate(collaborations = replace_na(collaborations, 0))
 
+# Step 8: Final join ONLY with real people
+rising_star_profile <- rising_star_profile %>%
+  inner_join(people, by = "person_id") %>%  # ensures node_type == "Person"
+  relocate(person_id, name)
 
-#### Step 1: Filter edges to only "Member of"
+# Display the rising star profile
+datatable(
+  rising_star_profile,
+  rownames = FALSE,
+  options = list(
+    pageLength = 10,
+    autoWidth = TRUE,
+    scrollX = TRUE
+  ),
+  caption = htmltools::tags$caption(
+    style = 'caption-side: top; text-align: left; font-size: 16px; font-weight: bold;',
+    'Table: ', 'Rising Star Profile of Artists'
+  )
+)
+```
 
+## 4.3. Clustering and PCA for the Rising Star Profiles
 
-graph_memberof <- graph %>%
-  activate(edges) %>%
-  filter(`Edge Type` == "MemberOf")
+This step uses ***Principal Component Analysis (PCA)*** and ***K-means clustering*** to group artists based on their profile metrics: ***total works, notable works, Oceanus Folk contributions, collaborations, and time to notability***. The PCA reduces these features to two dimensions (PC1 and PC2) for visualization, while K-means divides the artists into 3 clusters to reveal distinct patterns of career progression and influence.
 
+```{r}
+# Step 1: Prepare data
+clustering_data <- rising_star_profile %>%
+  select(person_id, name, total_works, notable_works, oceanus_folk_works, collaborations, time_to_notability) %>%
+  drop_na()
 
-#### Step 2: Extract only connected nodes (i.e., used in these edges)
+# Step 2: Scale numeric features only
+scaled_data <- clustering_data %>%
+  select(-person_id, -name) %>%
+  scale()
 
+# Step 3: K-means clustering
+set.seed(123)
+kmeans_result <- kmeans(scaled_data, centers = 3, nstart = 25)
 
-used_node_indices <- graph_memberof %>%
+# Step 4: PCA (first 2 components only)
+pca_result <- prcomp(scaled_data)
+pca_df <- as.data.frame(pca_result$x[, 1:2]) %>%
+  mutate(cluster = factor(kmeans_result$cluster),
+         name = clustering_data$name)
+
+# Step 5: Simplified plotly config (prevent overload)
+library(plotly)
+
+# Set viewer to browser (avoids slow Viewer pane rendering)
+options(viewer = NULL)
+
+# Create plot with shorter tooltips
+p <- ggplot(pca_df, aes(x = PC1, y = PC2, color = cluster,
+                        text = paste0("Artist: ", name))) +
+  geom_point(size = 2.5, alpha = 0.7) +
+  labs(title = "PCA Clustering of Rising Artists") +
+  theme_minimal()
+
+# Render in browser
+ggplotly(p, tooltip = "text")
+```
+
+::: callout-tip
+### Clustering Explanation:
+
+-   ***Cluster 1 (Red):*** Average or below-average artists with limited impact — likely early in their careers.
+-   ***Cluster 2 (Green):*** Balanced artists with steady progress and moderate recognition.
+-   ***Cluster 3 (Blue):*** Outliers or standout artists with high productivity or rapid rise — strong candidates for future stars.
+:::
+
+## 4.4. Influence Network for Oceanus Folk Gener
+
+This step constructs an interactive ***influence network*** focused on contributors to notable Oceanus Folk albums. It identifies artists who composed, performed, or produced such albums and maps their direct connections to albums and other collaborators using a 1-hop ego network.
+
+The network shows ***“Person” nodes in blue*** and ***“Album” nodes in yellow***, enabling exploration of how artists are interconnected through their work in the Oceanus Folk genre.
+
+```{r}
+# Step 1: Find Oceanus Folk albums that are notable
+oceanus_folk_album_ids <- nodes_tbl_clean %>%
+  filter(genre == "Oceanus Folk", node_type == "Album", notable == TRUE) %>%
+  pull(id)
+
+# Step 2: Define contribution edges and map to IDs
+contribution_types <- c("ComposerOf", "PerformerOf", "ProducerOf", "LyricistOf", "RecordedBy")
+id_map <- tibble(index = 1:nrow(nodes_tbl_clean), id = nodes_tbl_clean$id)
+
+# Step 3: Get edges where people contributed to those albums
+oceanus_contributions <- edges_tbl_clean %>%
+  filter(edge_type %in% contribution_types) %>%
+  left_join(id_map, by = c("to" = "index")) %>%
+  rename(to_id = id) %>%
+  filter(to_id %in% oceanus_folk_album_ids)
+
+# Step 4: Get contributing artists
+oceanus_artist_indices <- unique(oceanus_contributions$from)
+
+# Step 5: Get 1-hop neighborhood edges
+oceanus_ego_edges <- edges_tbl_clean %>%
+  filter(from %in% oceanus_artist_indices | to %in% oceanus_artist_indices)
+
+# Step 6: Get involved node indices
+oceanus_ego_node_indices <- unique(c(oceanus_ego_edges$from, oceanus_ego_edges$to))
+
+# Step 7: Keep only Person and Album nodes
+included_types <- c("Person", "Album")
+oceanus_ego_nodes <- nodes_tbl_clean[oceanus_ego_node_indices, ] %>%
+  filter(node_type %in% included_types)
+
+# Step 8: Remap indices for visNetwork
+index_lookup <- tibble(
+  old_index = oceanus_ego_node_indices,
+  new_index = 1:length(oceanus_ego_node_indices)
+)
+
+# Step 9: Reindex edges
+oceanus_ego_edges_vis <- oceanus_ego_edges %>%
+  left_join(index_lookup, by = c("from" = "old_index")) %>%
+  rename(from_new = new_index) %>%
+  left_join(index_lookup, by = c("to" = "old_index")) %>%
+  rename(to_new = new_index) %>%
+  filter(!is.na(from_new) & !is.na(to_new)) %>%
+  transmute(from = from_new, to = to_new, label = edge_type)
+
+# Step 10: Prepare nodes for visNetwork
+oceanus_ego_nodes_vis <- oceanus_ego_nodes %>%
+  mutate(id = 1:n(),
+         label = name,
+         group = node_type,
+         title = paste0("<b>", name, "</b><br>Type: ", node_type)) %>%
+  select(id, label, group, title)
+
+# Step 11: Draw interactive network
+visNetwork(oceanus_ego_nodes_vis, oceanus_ego_edges_vis, height = "700px", width = "100%") %>%
+  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
+  visInteraction(navigationButtons = TRUE) %>%
+  visLayout(randomSeed = 42) %>%
+  visLegend(useGroups = TRUE, position = "right", main = "Node Types")
+
+```
+
+# 5. Visualize the careers of three artists. Compare and contrast their rise in popularity and influence.
+
+This section explores and compares the careers of three selected artists—***Sailor Shift, Beatrice Albright, and Daniel O'Connell***—using multiple visualizations. It analyzes their contributions to songs and albums, highlights key metrics like total works, notable songs, Oceanus Folk involvement, and collaborations, and visualizes their timelines and ego networks. Together, these insights reveal differences in artistic output, genre focus, and influence patterns, helping to understand each artist’s trajectory and role in shaping the Oceanus Folk genre.
+
+## 5.1. Identify the three Artists
+
+This step defines the three focal artists—***Sailor Shift, Beatrice Albright, and Daniel O'Connell***—whose careers will be analyzed and compared in terms of influence, productivity, and genre involvement.
+
+```{r}
+selected_artists <- c("Sailor Shift", "Beatrice Albright", "Daniel O'Connell")
+```
+
+## 5.2. Get Person IDs
+
+This step retrieves the unique IDs of the selected artists from the cleaned nodes table, allowing their contributions and relationships to be accurately tracked in the network.
+
+```{r}
+artist_nodes <- nodes_tbl_clean %>%
+  filter(name %in% selected_artists, node_type == "Person") %>%
+  select(artist_name = name, artist_id = id)
+```
+
+## 5.3. Getting their Contributions (Songs/Albums)
+
+This step compiles all songs and albums contributed to by the selected artists by linking their IDs to relevant edges in the graph (e.g., `ComposerOf`, `PerformerOf`, `ProducerOf`, `LyricistOf`). It joins these connections with metadata such as release date, genre, and notability, producing a detailed table of each artist's creative works. This forms the foundation for comparing their productivity, genre focus, and the recognition they’ve received across their careers.
+
+```{r}
+# Step 1: Map artist IDs to tidygraph node index
+artist_nodes_indexed <- artist_nodes %>%
+  left_join(id_map, by = c("artist_id" = "id")) %>%
+  rename(index = index)
+
+# Step 2: Filter contribution edges
+contrib_edges <- edges_tbl_clean %>%
+  filter(edge_type %in% c("ComposerOf", "PerformerOf", "ProducerOf", "LyricistOf"))
+
+# Step 3: Join with artist names using index
+artist_contribs <- contrib_edges %>%
+  left_join(artist_nodes_indexed, by = c("from" = "index")) %>%
+  filter(!is.na(artist_name))  # Only keep selected artists
+
+# Step 4: Join with work details
+artist_works <- artist_contribs %>%
+  left_join(nodes_tbl_clean, by = c("to" = "id")) %>%
+  rename(work_name = name, work_type = node_type) %>%
+  select(artist_name, work_name, release_date, genre, notable, work_type)
+
+# Showing the artist_work
+datatable(
+  artist_works,
+  rownames = FALSE,
+  options = list(
+    pageLength = 10,
+    autoWidth = TRUE,
+    scrollX = TRUE
+  ),
+  caption = htmltools::tags$caption(
+    style = 'caption-side: top; text-align: left; font-size: 16px; font-weight: bold;',
+    'Table: ', 'Works Contributed by Selected Artists'
+  )
+)
+
+```
+
+## 5.4. Bar Chart of Key Metrics
+
+This bar chart compares four key metrics—***total works, notable works, Oceanus Folk works,** and **collaborations***—for the three selected artists.
+
+***Sailor Shift*** stands out significantly, with the highest values across all categories, especially in Oceanus Folk contributions (45) and notable works (34), reflecting her central role in popularizing the genre. In contrast, ***Beatrice Albright and Daniel O’Connell*** show similar and more modest activity levels, each with 11 total works and notable works, and limited collaborations (1 each).
+
+This visualization clearly highlights Sailor’s greater productivity, genre influence, and broader reach in the music industry.
+
+```{r}
+rising_star_profile %>%
+  filter(name %in% selected_artists) %>%
+  pivot_longer(
+    cols = c(total_works, notable_works, oceanus_folk_works, collaborations),
+    names_to = "metric",
+    values_to = "value"
+  ) %>%
+  ggplot(aes(x = name, y = value, fill = name)) +
+  geom_col(position = position_dodge(width = 0.9)) +
+  geom_text(
+    aes(label = value),
+    position = position_dodge(width = 0.9),
+    vjust = -0.5,
+    size = 3.5
+  ) +
+  facet_wrap(~metric, scales = "free_y") +
+  scale_y_continuous(expand = expansion(mult = c(0, 0.15))) + 
+  labs(
+    title = "Comparison of Artist Metrics",
+    y = "Count",
+    x = "Artist"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1)
+  )
+
+```
+
+## 5.4. Plotting Career Timeline
+
+This timeline chart visualizes the release dates of works by the three selected artists, focusing on the top genres they contributed to. Each point represents a song or album, with shapes indicating genre and colors showing whether the work is notable.
+
+```{r}
+top_genres <- artist_works %>%
+  count(genre, sort = TRUE) %>%
+  slice_head(n = 6) %>%
+  pull(genre)
+
+artist_subset <- artist_works %>%
+  filter(genre %in% top_genres)
+
+ggplot(artist_subset, aes(x = release_date, y = artist_name, shape = genre, color = notable)) +
+  geom_jitter(width = 0.3, height = 0.3, size = 3, alpha = 0.7) +
+  scale_color_manual(values = c(`TRUE` = "#a1d99b", `FALSE` = "#fcbba1")) +
+  labs(title = "Timelines (Top Genres)", shape = "Genre", color = "Notable") +
+  theme_minimal()
+
+```
+
+::: callout-tip
+### Insights
+
+-   Sailor Shift has the longest and most consistent timeline, with steady output across genres, especially Oceanus Folk.
+-   Daniel O’Connell and Beatrice Albright are active mainly between 2028–2036, with fewer works and less genre diversity.
+-   Most of Beatrice’s and Daniel’s works are notable, suggesting quality over quantity.
+-   Sailor’s mix of notable and non-notable works shows broad experimentation and prolific output.
+:::
+
+## 5.5. Plotting EGO Network Diagram for Top 3 Artists
+
+This interactive ego network visualizes the immediate (1-hop) relationships of the three selected artists—***Sailor Shift, Beatrice Albright, and Daniel O'Connell*****.** It maps their direct connections to other people, songs, albums, groups, and record labels using `visNetwork`, with nodes colored by type and edges labeled by relationship.
+
+```{r fig.height=10, fig.width=12}
+ego_artist_nodes <- nodes_tbl_clean %>%
+  filter(name %in% selected_artists, node_type == "Person") %>%
+  left_join(id_map, by = c("id" = "id")) %>%
+  select(artist_name = name, artist_id = id, index)
+
+ego_indices <- ego_artist_nodes$index  
+
+# 3. Extract ego subgraph (1-hop neighborhood)
+ego_subgraph <- graph %>%
+  activate(nodes) %>%
+  filter(node_is_adjacent(ego_indices) | row_number() %in% ego_indices)
+
+# 4. Prepare node data
+nodes_data <- ego_subgraph %>%
+  activate(nodes) %>%
+  as_tibble() %>%
+  mutate(id = row_number(),
+         label = name,
+         group = node_type,
+         title = paste0("<b>", name, "</b><br>Type: ", node_type)) %>%
+  select(id, label, group, title)
+
+# 5. Prepare edge data
+edges_data <- ego_subgraph %>%
   activate(edges) %>%
   as_tibble() %>%
-  select(from, to)%>%
-  unlist() %>%
-  unique()
+  mutate(from = as.integer(from),
+         to = as.integer(to),
+         label = edge_type) %>%
+  select(from, to, label)
 
+# 6. Visualize in visNetwork
+visNetwork(nodes_data, edges_data, height = "600px", width = "100%") %>%
+  visOptions(highlightNearest = TRUE, nodesIdSelection = TRUE) %>%
+  visInteraction(navigationButtons = TRUE) %>%
+  visLayout(randomSeed = 42) %>%
+  visLegend(
+    useGroups = TRUE,              
+    position = "right",           
+    main = "Node Types"           
+  )
+```
 
-#### Step 3: Keep only those nodes
+::: callout-tip
+### Insights
 
+-   ***Sailor Shift*** is at the center of a dense cluster, showing her extensive influence and involvement in various musical roles.
+-   ***Beatrice Albright and Daniel O’Connell*** appear in smaller clusters, reflecting fewer collaborations and a narrower scope.
+-   The visualization reveals shared connections (e.g., Ivy Echoes) and highlights how Sailor’s network spans more genres and institutions.
+:::
 
-graph_memberof <- graph_memberof %>%
-  activate(nodes) %>%
-  mutate(row_id = row_number()) %>%
-  filter(row_id %in% used_node_indices) %>%
-  select(-row_id)
+# 6. Predicting the next Oceanus Folk stars over the next five year
 
+This section identifies promising new artists who are likely to become the next Oceanus Folk stars. Using the rising star profiles, it filters for individuals with a strong commitment to the genre, a notable body of work, and a relatively recent or rapid rise in visibility. By applying data-driven thresholds and ranking by impact (e.g., notable works, collaborations), the analysis highlights top candidates who exhibit the traits of future genre leaders. These predictions help spotlight emerging talent shaping the next wave of Oceanus Folk music.
 
-#### Plot the sub-graph
+## 6.1. Understanding Profiles of Current Stars
 
+This step reviews the profile metrics of the three selected artists to establish a benchmark for identifying future stars, focusing on their total works, notable songs, Oceanus Folk contributions, and collaborations.
 
-ggraph(graph_memberof,
-       layout = "fr") + 
-  geom_edge_link(alpha = 0.5,
-                 colour = "gray") +
-  geom_node_point(aes(colour = `Node Type`),
-                  size = 1) +
-  geom_node_text(aes(label = name),
-                 repel = TRUE,
-                 size = 2.5) +
-  theme_void()
+```{r}
+rising_star_profile %>%
+  filter(name %in% selected_artists)
+```
 
+## 6.2. Defining Thresholds to Filter Candidates
+
+This step applies a set of criteria to identify emerging Oceanus Folk artists with high potential. The filters select artists with at least 5 Oceanus Folk works, 6 or more notable works, a debut within the past 20 years, and either a rapid rise to notability or recent entry. The resulting candidates—***Zacharie Martins, Orla Seabloom, Tao Jin, and Lei Jin***—demonstrate strong genre commitment and early success, positioning them as likely future stars.
+
+```{r}
+# Define the current year
+current_year <- 2025
+
+# Find promising Oceanus Folk artists
+future_stars <- rising_star_profile %>%
+  filter(
+    oceanus_folk_works >= 5,                          # commitment to genre
+    notable_works >= 6,                               # some level of recognition
+    !name %in% selected_artists,                      # exclude current stars
+    first_release >= (current_year - 20),              # relatively new
+    time_to_notability <= 3 | is.na(time_to_notability)  # fast risers or too new
+  ) %>%
+  arrange(desc(notable_works), desc(collaborations))  # sort by impact
+
+# Preview top candidates
+future_stars %>% select(name, total_works, notable_works, oceanus_folk_works, collaborations, time_to_notability)
+```
+
+## 6.3. Pick Top 3 Candidates and Justify
+
+This step selects the top 3 rising Oceanus Folk artists based on a combined score of notable works, collaborations, and genre contributions. The selected artists—***Zacharie Martins, Orla Seabloom, and Tao Jin***—stand out for their strong early recognition and dedication to Oceanus Folk. Orla’s higher collaboration count suggests strong network potential, while Zacharie and Tao show consistent output and fast-rising impact, making them strong candidates for future stardom.
+
+```{r}
+# Choose the top 3 candidates
+top_3_future_stars <- future_stars %>% 
+  slice_max(order_by = notable_works + collaborations + oceanus_folk_works, n = 3)
+
+top_3_future_stars
+```
+
+## 6.4. Radar Chart for Each Candidates
+
+This radar chart visually compares the top three future Oceanus Folk stars—***Zacharie Martins, Orla Seabloom, and Tao Jin***—across five key dimensions: total works, notable works, Oceanus Folk contributions, collaborations, and rapid rise (time to notability). Each chart normalizes scores to a 0–100 scale, helping highlight each artist’s relative strengths.
+
+```{r}
+
+radar_data <- top_3_future_stars %>%
+  select(total_works, notable_works, oceanus_folk_works, collaborations, time_to_notability) %>%
+  as.data.frame()
+
+# Set row names to artist names
+rownames(radar_data) <- top_3_future_stars$name
+
+# Rename columns for better display
+colnames(radar_data) <- c("Total", "Notable", "Oceanus\nFolk", "Collabs", "Rapid\nRise")
+
+# Invert Time to Notability (BEFORE scaling)
+radar_data[, "Rapid\nRise"] <- max(radar_data[, "Rapid\nRise"], na.rm = TRUE) - 
+                               radar_data[, "Rapid\nRise"]
+
+# Normalize all features to 0-100 range
+radar_data_scaled <- as.data.frame(lapply(radar_data, function(x) {
+  scales::rescale(x, to = c(0, 100))
+}))
+rownames(radar_data_scaled) <- rownames(radar_data)
+
+# Set layout with better margins
+par(mfrow = c(1, 3), 
+    mar = c(2, 2, 4, 2),
+    oma = c(1, 1, 3, 1),
+    family = "sans")
+
+# Loop and plot
+for (i in 1:nrow(radar_data_scaled)) {
+  artist_name <- rownames(radar_data_scaled)[i]
+  artist_values <- radar_data_scaled[i, , drop = FALSE]
+  
+  radar_individual <- rbind(
+    rep(100, ncol(radar_data_scaled)),
+    rep(0, ncol(radar_data_scaled)),
+    artist_values
+  )
+  
+  radarchart(radar_individual,
+             axistype = 1,
+             pcol = "darkorange",
+             pfcol = rgb(1, 0.5, 0, 0.3),
+             plwd = 2,
+             cglcol = "gray",
+             cglty = 1,
+             cglwd = 0.8,
+             axislabcol = "darkblue",
+             caxislabels = paste0(seq(0, 100, 25), "%"),
+             vlcex = 0.85,
+             title = artist_name,
+             calcex = 0.8,
+             cex.main = 1.2)
+}
+```
+
+# 7. Conclusion
+
+This study of the VAST Challenge 2025 Mini-Challenge 1 provides a rich, network-based exploration of how Sailor Shift catalyzed the global rise of Oceanus Folk. Through data wrangling, exploratory analysis, and graph-based modeling, we unpacked her influence, visualized genre growth, and forecasted future talent.
+
+::: callout-tip
+## Key Insights
+
+-   Sailor Shift leads in all metrics: total works, notable songs, Oceanus Folk contributions, and collaborations.
+-   Her ego network shows wide influence across people, albums, and genres.
+-   Oceanus Folk grew significantly post-2028, aligning with her rise.
+:::
+
+::: callout-note
+## Career Comparison
+
+-   Beatrice Albright and Daniel O’Connell had steady but smaller careers.
+-   Visuals showed Sailor’s sustained, diverse output and broader influence.
+:::
+
+::: callout-tip
+## Future Stars Identified
+
+-   Using artist profiles, we selected Zacharie Martins, Orla Seabloom, and Tao Jin as the next potential Oceanus Folk stars.
+
+-   Radar charts highlighted:
+
+    -   Zacharie for volume and impact,
+    -   Orla for collaborations and genre depth,
+    -   Tao for rapid recognition.
+:::
+
+::: callout-note
+## Key Takeaways
+
+-   Network and profile analytics effectively track artistic influence.
+-   This approach helps forecast rising talent in niche genres like Oceanus Folk.
+:::
