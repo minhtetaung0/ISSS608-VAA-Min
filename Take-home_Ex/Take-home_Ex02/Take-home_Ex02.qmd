@@ -27,7 +27,7 @@ The task is to analyze a knowledge graph of artists, songs, albums, and influenc
 ## 1.2. Loading Packages
 
 | Packages | Purpose |
-|--------------------|----------------------------------------------------|
+|---------------------|---------------------------------------------------|
 | `tidyverse` | Core data manipulation and visualization tools (`dplyr`, `ggplot2`, `tibble`, etc.). |
 | `jsonlite` | Reads the JSON file into a structured R format for further processing. |
 | `SmartEDA` | Automates exploratory data analysis (EDA), summaries, and profiling. |

@@ -1,0 +1,125 @@
+---
+title: "Hands-on Exercise 8.2"
+author: "Min Htet Aung"
+description: "This is the Hands-on Exercise 8.2" 
+date: "Jun 09, 2025"
+date-modified: "last-modified"
+format: 
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+editor: visual
+execute: 
+  eval: true
+  echo: true
+  warning: false
+  freeze: true
+---
+
+# Visualising Geospatial Point Data
+
+## Importing Packages
+
+```{r}
+pacman::p_load(sf, tmap, tidyverse)
+```
+
+
+# Geospatial Data Wrangling
+
+## Data Import and Preparation
+
+The code chunk below uses `read_csv()` function of readr package to import `SGPools_svy21.csv` into R as a tibble data frame called sgpools.
+
+```{r}
+sgpools <- read_csv("data/aspatial/SGPools_svy21.csv")
+```
+
+```{r}
+list(sgpools) 
+```
+
+
+## Creating a sf data frame from an aspatial data frame
+
+The code chunk below converts sgpools data frame into a simple feature data frame by using `st_as_sf()` of sf packages
+
+```{r}
+sgpools_sf <- st_as_sf(sgpools, 
+                       coords = c("XCOORD", "YCOORD"),
+                       crs= 3414)
+```
+
+```{r}
+list(sgpools_sf)
+```
+
+
+# Drawing Proportional Symbol Map
+
+To create an interactive proportional symbol map in R, the view mode of tmap will be used.
+
+The code churn below will turn on the interactive mode of tmap.
+
+```{r}
+tmap_mode("view")
+```
+
+
+## It all started with an interactive point symbol map
+
+The code chunks below are used to create an interactive point symbol map.
+
+```{r}
+tm_shape(sgpools_sf) + 
+  tm_bubbles(fill = "red",
+           size = 1,
+           col = "black",
+           lwd = 1)
+```
+
+
+## Lets make it proportional
+
+To create a proportional symbol map, the `Gp1Gp2Winnings` variable is mapped to the size aesthetic.
+
+```{r}
+tm_shape(sgpools_sf) + 
+  tm_bubbles(fill = "red",
+             size = "Gp1Gp2 Winnings",
+             col = "black",
+             lwd = 1)
+```
+
+
+## Lets give it a different colour
+
+The proportional symbol map can be further improved by using the colour visual attribute. In the code chunks below, OUTLET_TYPE variable is used as the colour attribute variable.
+
+```{r}
+tm_shape(sgpools_sf) + 
+  tm_bubbles(fill = "OUTLET TYPE", 
+             size = "Gp1Gp2 Winnings",
+             col = "black",
+             lwd = 1)
+```
+
+
+## Side by side visualization
+
+tmap’s view mode supports faceted plots using `tm_facets(sync = TRUE)` to enable synchronized zoom and pan across maps.
+
+```{r}
+tm_shape(sgpools_sf) + 
+  tm_bubbles(fill = "OUTLET TYPE", 
+             size = "Gp1Gp2 Winnings",
+             col = "black",
+             lwd = 1) + 
+  tm_facets(by= "OUTLET TYPE",
+            nrow = 1,
+            sync = TRUE)
+```
+
+```{r}
+tmap_mode("plot")
+```
