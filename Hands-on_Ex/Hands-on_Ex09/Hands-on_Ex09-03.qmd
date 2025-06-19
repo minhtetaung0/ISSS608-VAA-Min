@@ -1,0 +1,274 @@
+---
+title: "Hands-on Exercise 9.3"
+author: "Min Htet Aung"
+description: "This is the Hands-on Exercise 9.1" 
+date: "Jun 18, 2025"
+date-modified: "last-modified"
+format: 
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+editor: visual
+execute: 
+  eval: true
+  echo: true
+  warning: false
+  freeze: true
+---
+
+# Heatmap for Visualising and Analysing Multivariate Data
+
+## Installing and Launching R Packages
+
+```{r}
+pacman::p_load(seriation, dendextend, heatmaply, tidyverse)
+```
+
+## Importing and Preparing The Data Set
+
+### Importing the data set
+
+```{r}
+wh <- read_csv("data/WHData-2018.csv")
+```
+
+### Preparing the data
+
+```{r}
+row.names(wh) <- wh$Country
+```
+
+### Transforming the data frame into a matrix
+
+The data was loaded into a data frame, but it has to be a data matrix to make your heatmap.
+
+The code chunk below will be used to transform wh data frame into a data matrix.
+
+```{r}
+wh1 <- dplyr::select(wh, c(3, 7:12))
+wh_matrix <- data.matrix(wh)
+```
+
+## Static Heatmap
+
+Several R packages are available for creating heatmaps, each offering different levels of customization and functionality:
+
+- `heatmap()` from the base stats package provides a simple and straightforward way to draw basic heatmaps.
+
+- `heatmap.2()` from the gplots package offers an enhanced version of the base heatmap with additional features such as better control over dendrograms and color schemes.
+
+- `pheatmap()` from the pheatmap package (also known as Pretty Heatmap) allows for more control over the appearance of the heatmap, making it easier to produce visually appealing results.
+
+- `ComplexHeatmap` from the Bioconductor ecosystem is designed for advanced and highly customizable heatmap visualizations, especially useful in genomic data analysis.
+
+- `superheat` is a flexible and extendable package designed for visualizing complex datasets, including big data and mixed data types, through advanced heatmaps.
+
+### heatmap() of R Stats
+
+```{r}
+wh_heatmap <- heatmap(wh_matrix,
+                      Rowv=NA, Colv=NA)
+```
+
+- By default, heatmap() plots a cluster heatmap. The arguments Rowv=NA and Colv=NA are used to switch off the option of plotting the row and column dendrograms.
+
+```{r}
+wh_heatmap <- heatmap(wh_matrix)
+```
+
+- The order of both rows and columns is different compare to the native wh_matrix. This is because heatmap do a reordering using clusterisation: it calculates the distance between each pair of rows and columns and try to order them by similarity. Moreover, the corresponding dendrogram are provided beside the heatmap.
+
+```{r}
+wh_heatmap <- heatmap(wh_matrix,
+                      scale="column",
+                      cexRow = 0.6, 
+                      cexCol = 0.8,
+                      margins = c(10, 4))
+```
+
+## Creating Interactive Heatmap
+
+`heatmaply` is an R package designed for creating interactive cluster heatmaps that can be easily shared online as standalone HTML files. Developed and maintained by Tal Galili, the package enables users to explore data visually through dynamic and user-friendly heatmaps.
+
+Before using `heatmaply`, it is recommended to review the Introduction to Heatmaply to gain a clear understanding of its key features and functionalities. Additionally, keeping the user manual accessible is advised for quick reference to available functions and customization options throughout your analysis.
+
+### Working with heatmaply
+
+```{r}
+heatmaply(mtcars)
+```
+
+```{r}
+heatmaply(wh_matrix[, -c(1, 2, 4, 5)])
+```
+
+Different from `heatmap()`, for `heatmaply()` the default horizontal dendrogram is placed on the left hand side of the heatmap.
+The text label of each raw, on the other hand, is placed on the right hand side of the heat map.
+When the x-axis marker labels are too long, they will be rotated by 135 degree from the north.
+
+### Data trasformation
+
+When analyzing multivariate datasets, it is common for variables to have different units and ranges of measurement. To ensure comparability across variables, data transformation is often performed before clustering.
+
+In `heatmaply()`, three main transformation methods are supported:
+
+- Scale: Standardizes values to have a mean of 0 and standard deviation of 1.
+
+- Normalize: Rescales values to a [0, 1] range.
+
+- Percentilize: Converts values to their percentile ranks.
+
+#### Scaling Method
+
+When all variables originate from, or are assumed to follow, a normal distribution, scaling—which involves subtracting the mean and dividing by the standard deviation—transforms the values to approximate a standard normal distribution. This process allows each value to represent its distance from the mean in terms of standard deviations.
+
+In `heatmaply()`, the scale argument supports both column-wise and row-wise scaling, enabling users to standardize their data as needed for meaningful clustering and comparison.
+
+```{r}
+heatmaply(wh_matrix[, -c(1, 2, 4, 5)],
+          scale = "column")
+```
+
+#### Normalizing Method
+
+When variables in a dataset come from different, and possibly non-normal, distributions, the normalize method can be used to rescale the data to a 0 to 1 range. This is done by subtracting the minimum value and dividing by the range (maximum - minimum) of the observations.
+
+Unlike scaling, normalization preserves the original shape of each variable’s distribution while placing them on a common scale for comparison. In `heatmaply()`, normalization is applied directly to the input dataset (e.g., wh_matrix) before passing it into the function.
+
+```{r}
+heatmaply(normalize(wh_matrix[, -c(1, 2, 4, 5)]))
+```
+
+#### Percentising method
+
+This is similar to ranking the variables, but instead of keeping the rank values, divide them by the maximal rank.
+
+This is done by using the ecdf of the variables on their own values, bringing each value to its empirical percentile.
+
+The benefit of the percentize function is that each value has a relatively clear interpretation, it is the percent of observations that got that value or below it.
+Similar to Normalize method, the Percentize method is also performed on the input data set i.e. wh_matrix as shown in the code chunk below.
+
+```{r}
+heatmaply(percentize(wh_matrix[, -c(1, 2, 4, 5)]))
+```
+
+### Clustering Algorithm
+`heatmaply` supports a wide range of hierarchical clustering algorithms to group similar rows and columns in the heatmap.
+
+- `distfun`: Defines the function used to compute the distance (or dissimilarity) matrix. It defaults to dist, but can also accept "pearson", "spearman", or "kendall" to apply correlation-based clustering, calculated using `as.dist(1 - cor(t(x)))`.
+
+- `hclustfun`: Specifies the function used to perform hierarchical clustering. The default is `hclust`, which constructs the dendrograms when `Rowv` or `Colv` are not already provided.
+
+- `dist_method`: By default, this is set to NULL, which results in Euclidean distance being used. If `distfun = "dist"`, this argument can be set to other distance metrics such as "maximum", "manhattan", "canberra", "binary", or "minkowski".
+
+- `hclust_method`: Also defaults to NULL, resulting in the "complete" linkage method. Other supported methods include "ward.D", "ward.D2", "single", "average" (UPGMA), "mcquitty" (WPGMA), "median" (WPGMC), and "centroid" (UPGMC).
+
+### Manual approach
+
+In the code chunk below, the heatmap is plotted by using hierachical clustering algorithm with “Euclidean distance” and “ward.D” method.
+
+```{r}
+heatmaply(normalize(wh_matrix[, -c(1, 2, 4, 5)]),
+          dist_method = "euclidean",
+          hclust_method = "ward.D")
+```
+
+### Statistical approach
+
+In order to determine the best clustering method and number of cluster the dend_expend() and find_k() functions of dendextend package will be used.
+
+```{r}
+wh_d <- dist(normalize(wh_matrix[, -c(1, 2, 4, 5)]), method = "euclidean")
+dend_expend(wh_d)[[3]]
+```
+
+```{r}
+wh_clust <- hclust(wh_d, method = "average")
+num_k <- find_k(wh_clust)
+plot(num_k)
+```
+
+Figure above shows that k=3 would be good.
+
+With reference to the statistical analysis results, we can prepare the code chunk as shown below.
+
+```{r}
+heatmaply(normalize(wh_matrix[, -c(1, 2, 4, 5)]),
+          dist_method = "euclidean",
+          hclust_method = "average",
+          k_row = 3)
+```
+
+### Seriation
+
+In hierarchical clustering, the order of items in a dendrogram isn’t fixed—branches can be flipped without changing the tree structure, which affects how clearly patterns appear in a heatmap.
+
+To address this, `heatmaply` uses the `seriation` package to find an optimal ordering of rows and columns. It applies the Optimal Leaf Ordering (OLO) algorithm, which rotates dendrogram branches to minimize the total dissimilarity between adjacent items. This improves the visual clarity of heatmaps by creating a more meaningful arrangement of the data.
+
+```{r}
+heatmaply(normalize(wh_matrix[, -c(1, 2, 4, 5)]),
+          seriate = "OLO")
+```
+
+The default options is “OLO” (Optimal leaf ordering) which optimizes the above criterion (in O(n^4)). Another option is “GW” (Gruvaeus and Wainer) which aims for the same goal but uses a potentially faster heuristic.
+
+```{r}
+heatmaply(normalize(wh_matrix[, -c(1, 2, 4, 5)]),
+          seriate = "GW")
+```
+
+The option “mean” gives the output we would get by default from heatmap functions in other packages such as `gplots::heatmap.2`.
+
+```{r}
+heatmaply(normalize(wh_matrix[, -c(1, 2, 4, 5)]),
+          seriate = "mean")
+```
+
+The option “none” gives us the dendrograms without any rotation that is based on the data matrix.
+
+```{r}
+heatmaply(normalize(wh_matrix[, -c(1, 2, 4, 5)]),
+          seriate = "none")
+```
+
+### Working with colour palettes
+
+The default colour palette uses by heatmaply is viridis. heatmaply users, however, can use other colour palettes in order to improve the aestheticness and visual friendliness of the heatmap.
+
+In the code chunk below, the Blues colour palette of rColorBrewer is used
+
+```{r}
+heatmaply(normalize(wh_matrix[, -c(1, 2, 4, 5)]),
+          seriate = "none",
+          colors = Blues)
+```
+
+### The Finishing Touch
+Beyond its analytical capabilities, heatmaply offers a variety of customization options to enhance the visual quality of heatmaps. These features help ensure that the final output is both informative and visually appealing.
+
+In the example below:
+
+- k_row is used to divide the rows into 5 clusters.
+
+- margins adjusts plot spacing, setting the top margin to 60 and row margin to 200.
+
+- fontsize_row and fontsize_col set the font size of row and column labels to 4.
+
+- main adds a main title to the plot.
+
+- xlab and ylab set the x-axis and y-axis labels.
+
+```{r}
+heatmaply(normalize(wh_matrix[, -c(1, 2, 4, 5)]),
+          Colv=NA,
+          seriate = "none",
+          colors = Blues,
+          k_row = 5,
+          margins = c(NA,200,60,NA),
+          fontsize_row = 4,
+          fontsize_col = 5,
+          main="World Happiness Score and Variables by Country, 2018 \nDataTransformation using Normalise Method",
+          xlab = "World Happiness Indicators",
+          ylab = "World Countries"
+          )
+```
